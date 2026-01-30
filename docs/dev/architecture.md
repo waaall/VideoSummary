@@ -4,7 +4,6 @@ VideoCaptioner 的系统架构设计。
 
 ## 技术栈
 
-- **UI 框架**: PyQt5 + QFluentWidgets
 - **ASR 引擎**: Whisper (FasterWhisper/WhisperCpp)
 - **LLM 集成**: OpenAI/DeepSeek/Gemini/Ollama 等
 - **视频处理**: FFmpeg
@@ -22,10 +21,6 @@ VideoCaptioner 的系统架构设计。
 ### 3. 翻译模块 (`app/core/translate/`)
 
 字幕翻译模块，支持多种翻译服务。
-
-### 4. UI 模块 (`app/view/`)
-
-PyQt5 用户界面模块。
 
 ## 数据流
 

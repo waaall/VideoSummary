@@ -4,6 +4,11 @@
 
 时间单位：以工作日估算，实际可按人力缩放。
 
+## 设计原则（针对本次整改）
+
+1. 本次为全新后端设计，不需要兼容历史用户数据/配置；仅需要适配 `app/core` 中的现有代码能力。
+2. “new” 之类的命名没有必要；在明确只支持新结构的前提下，这类命名是多余且易产生歧义，应使用中性命名。
+
 ## 阶段 1：准备与清理 ✅ 已完成
 
 **状态：已完成**
@@ -69,20 +74,80 @@
 
 ---
 
-## 阶段 2：DAG 编排层落地
-目标：建立可配置管线的“骨架”，具备最小可执行能力。
-范围/任务：
-- PipelineContext / NodeBase / Graph / Runner / Registry / ConfigLoader
-- 条件评估机制（subtitle_valid / is_silent / source_type）
-- 单入口 /pipeline/run 读取 DAG 配置并执行
-交付物：
-- 可运行的 DAG 执行器（至少支持串行+条件分支）
-- 请求/响应 schema 稳定
-验收标准：
-- 简单 DAG 能跑通（mock 节点即可）
-- trace/日志记录结构可见
-风险与缓解：
+## 阶段 2：DAG 编排层落地 ✅ 已完成
+
+**状态：已完成**
+**完成日期：2026-01-30**
+
+目标：建立可配置管线的"骨架"，具备最小可执行能力（串行+条件分支），使用 mock 节点验证。
+
+### 完成内容
+
+#### 1. 新增 app/pipeline/ 目录
+```
+app/pipeline/
+├── __init__.py
+├── context.py        # PipelineContext 上下文
+├── node_base.py      # PipelineNode 抽象基类
+├── condition.py      # ConditionEvaluator 条件评估
+├── graph.py          # PipelineGraph DAG 结构
+├── registry.py       # NodeRegistry 节点注册表
+├── runner.py         # PipelineRunner 执行器
+└── nodes/
+    ├── __init__.py
+    └── mock.py       # 8 个 Mock 节点
+```
+
+#### 2. 核心类实现
+- [x] **PipelineContext**：管线执行上下文，承载全局状态
+  - 字段：run_id, source_type, video_path, subtitle_valid, is_silent, summary_text 等
+  - 方法：from_inputs(), add_trace(), to_dict(), to_eval_namespace()
+- [x] **PipelineNode**：抽象基类，统一节点接口
+  - 方法：run(ctx), get_output_keys()
+- [x] **PipelineGraph**：DAG 结构解析
+  - 方法：topological_sort(), get_predecessors(), get_successors()
+  - 循环依赖检测（DFS）
+- [x] **PipelineRunner**：按拓扑顺序执行节点
+  - 条件分支评估（前驱边条件）
+  - trace 记录（node_id, status, elapsed_ms, error, output_keys）
+- [x] **NodeRegistry**：节点类型到类的映射
+  - 单例模式 get_default_registry()
+- [x] **ConditionEvaluator**：安全的条件表达式评估
+  - 基于 AST 解析，禁止危险操作
+  - 白名单变量：source_type, subtitle_valid, is_silent 等
+
+#### 3. Mock 节点（8个）
+| 节点类型 | 输出字段 |
+|---------|---------|
+| InputNode | source_type |
+| FetchMetadataNode | video_duration |
+| DownloadSubtitleNode | subtitle_path |
+| ValidateSubtitleNode | subtitle_valid, subtitle_coverage_ratio |
+| ExtractAudioNode | audio_path |
+| TranscribeNode | transcript_token_count |
+| DetectSilenceNode | is_silent, audio_rms |
+| TextSummarizeNode | summary_text |
+
+#### 4. API 端点更新
+- [x] `app/api/main.py`：实现 `/pipeline/run` 端点
+  - 解析 PipelineRunRequest
+  - 构建 PipelineGraph 和 PipelineContext
+  - 创建 PipelineRunner 执行
+  - 返回 PipelineRunResponse（含 trace）
+
+#### 5. 测试文档
+- [x] `docs/dev/pipeline-testing.md`：服务管理和测试用例
+
+### 验收结果
+- [x] ✅ 简单 DAG 能跑通（mock 节点）
+- [x] ✅ 条件分支正确执行/跳过
+- [x] ✅ trace 结构完整（node_id, status, elapsed_ms, output_keys）
+- [x] ✅ 循环依赖能检测并报错
+
+### 风险与缓解
 - 并发/短路先不做，留到阶段 4
+
+---
 
 ## 阶段 3：核心节点迁移与流程贯通
 目标：满足“URL 字幕优先 / 本地跳过下载 / 无声判断”的业务闭环。

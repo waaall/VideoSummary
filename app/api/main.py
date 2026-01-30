@@ -4,6 +4,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.schemas import PipelineRunRequest, PipelineRunResponse
+from app.pipeline.context import PipelineContext
+from app.pipeline.graph import PipelineGraph, CyclicDependencyError, InvalidGraphError
+from app.pipeline.runner import PipelineRunner, PipelineExecutionError
+from app.pipeline.registry import get_default_registry, NodeNotFoundError
 
 APP_NAME = "VideoCaptioner API"
 VERSION = "0.1.0"
@@ -13,7 +17,9 @@ app = FastAPI(title=APP_NAME, version=VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # 若 allow_credentials=True，allow_origins 不能为 "*"（浏览器会拒绝）。
+    # 公开 API 默认关闭凭证。
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -27,8 +33,50 @@ def health_check():
 
 @app.post("/pipeline/run", response_model=PipelineRunResponse)
 def pipeline_run(req: PipelineRunRequest):
-    """运行管道（尚未实现）"""
-    raise HTTPException(status_code=501, detail="Pipeline runner not implemented yet")
+    """运行管道
+
+    接收 DAG 配置和输入参数，执行管线并返回结果。
+    """
+    try:
+        # 构建 DAG 图
+        graph = PipelineGraph(req.pipeline)
+    except CyclicDependencyError as e:
+        raise HTTPException(status_code=400, detail=f"循环依赖: {e}")
+    except InvalidGraphError as e:
+        raise HTTPException(status_code=400, detail=f"图结构无效: {e}")
+
+    try:
+        # 创建执行上下文
+        ctx = PipelineContext.from_inputs(req.inputs, req.thresholds)
+
+        # 创建执行器并运行
+        registry = get_default_registry()
+        runner = PipelineRunner(graph, registry)
+        ctx = runner.run(ctx)
+
+        # 确定最终状态
+        failed_nodes = [t for t in ctx.trace if t.status == "failed"]
+        final_status = "failed" if failed_nodes else "completed"
+
+        return PipelineRunResponse(
+            run_id=ctx.run_id,
+            status=final_status,
+            summary_text=ctx.summary_text,
+            context=ctx.to_dict(),
+            trace=ctx.trace,
+        )
+
+    except NodeNotFoundError as e:
+        raise HTTPException(status_code=400, detail=f"节点类型未注册: {e}")
+    except PipelineExecutionError as e:
+        # 执行失败但仍返回部分结果
+        return PipelineRunResponse(
+            run_id=ctx.run_id,
+            status="failed",
+            summary_text=ctx.summary_text,
+            context=ctx.to_dict(),
+            trace=ctx.trace,
+        )
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:

@@ -1,7 +1,6 @@
 """
 任务工厂类 - 阶段3迁移参考
 
-注意：此文件依赖已删除的 Qt 配置模块 (app.common.config)，
 当前仅作为迁移参考保留，不可直接使用。
 阶段3需要将任务创建逻辑迁移到 pipeline nodes。
 """
@@ -10,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 # TODO: 阶段3迁移时改用 app.api.config
-# from app.common.config import cfg  # 已删除，Qt 依赖
+# from app.common.config import cfg
 cfg = None  # 占位，防止导入错误
 
 from app.config import MODEL_PATH, SUBTITLE_STYLE_PATH

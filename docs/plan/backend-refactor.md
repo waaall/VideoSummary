@@ -8,6 +8,11 @@
 - 移除 Qt 相关依赖与 UI 代码，确保纯后端可运行。
 - 保留核心能力：ASR、字幕解析、翻译、优化、视频工具（ffmpeg）。
 
+## 设计原则（针对本次整改）
+
+1. 本次为全新后端设计，不需要兼容历史用户数据/配置；仅需要适配 `app/core` 中的现有代码能力。
+2. “new” 之类的命名没有必要；在明确只支持新结构的前提下，这类命名是多余且易产生歧义，应使用中性命名。
+
 ## 新增（已提供 FastAPI 骨架）
 
 - `app/api/main.py`：FastAPI 应用入口（**对外只保留 `/pipeline/run` 作为统一入口**）
@@ -136,46 +141,46 @@ nodes:
     type: MergeSummaryNode
 
 edges:
-  - from: input
-    to: fetch_metadata
+  - source: input
+    target: fetch_metadata
     condition: "source_type in ['url','local']"
-  - from: input
-    to: download_subtitle
+  - source: input
+    target: download_subtitle
     condition: "source_type == 'url'"
-  - from: input
-    to: upload_local
+  - source: input
+    target: upload_local
     condition: "source_type == 'local'"
-  - from: download_subtitle
-    to: parse_subtitle
-  - from: fetch_metadata
-    to: validate_subtitle
-  - from: parse_subtitle
-    to: validate_subtitle
-  - from: validate_subtitle
-    to: text_summary
+  - source: download_subtitle
+    target: parse_subtitle
+  - source: fetch_metadata
+    target: validate_subtitle
+  - source: parse_subtitle
+    target: validate_subtitle
+  - source: validate_subtitle
+    target: text_summary
     condition: "subtitle_valid == true"
-  - from: validate_subtitle
-    to: download_video
+  - source: validate_subtitle
+    target: download_video
     condition: "subtitle_valid == false and source_type == 'url'"
-  - from: validate_subtitle
-    to: extract_audio
+  - source: validate_subtitle
+    target: extract_audio
     condition: "subtitle_valid == false and source_type == 'local'"
-  - from: download_video
-    to: extract_audio
-  - from: extract_audio
-    to: transcribe
-  - from: transcribe
-    to: detect_silence
-  - from: detect_silence
-    to: text_summary
+  - source: download_video
+    target: extract_audio
+  - source: extract_audio
+    target: transcribe
+  - source: transcribe
+    target: detect_silence
+  - source: detect_silence
+    target: text_summary
     condition: "is_silent == false"
-  - from: detect_silence
-    to: sample_frames
+  - source: detect_silence
+    target: sample_frames
     condition: "is_silent == true"
-  - from: sample_frames
-    to: vlm_summary
-  - from: vlm_summary
-    to: merge_summary
+  - source: sample_frames
+    target: vlm_summary
+  - source: vlm_summary
+    target: merge_summary
 ```
 
 #### 执行模型（建议）
