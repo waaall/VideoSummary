@@ -1,0 +1,33 @@
+name: 错误 | Bug
+description: 反馈程序出现的错误 | Report bugs
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您报告问题！请提供以下信息帮助我更好地解决问题。
+        
+        Thank you for reporting the issue! Using English or Chinese.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述 | Problem Description
+      description: |
+        描述您遇到的问题，如果能提供一个复现步骤将帮我更好定位修复问题。(例如:错误字幕内容、或者视频链接、或者具体报错)
+        
+        Please describe in detail the problem you encountered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志信息（可选）| Logs (Optional)
+      description: |
+        （可选）如果你在生成字幕视频过程遇到了错误，请打开根目录下的 AppData/logs/app.log 文件，根据日志的时间复制最近一次运行错误的日志信息并填写。这样可以更好帮助我排查。
+        
+        (Optional) Please open the AppData/logs/app.log file in the root directory and copy the log information from the most recent run error.
+      render: shell
+    validations:
+      required: false

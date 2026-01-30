@@ -1,0 +1,123 @@
+[project]
+name = "videocaptioner"
+version = "1.3.3"
+description = "AI-powered video captioning tool based on LLM"
+readme = "README.md"
+license = { text = "GPL-3.0" }
+authors = [{ name = "Weifeng" }]
+requires-python = ">=3.10,<3.13"
+keywords = ["video", "caption", "subtitle", "asr", "llm", "translation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "requests>=2.32.4",
+    "openai>=1.97.1",
+    "diskcache>=5.6.3",
+    "yt-dlp>=2025.7.21",
+    "modelscope>=1.32.0",
+    "psutil>=7.0.0",
+    "json-repair>=0.49.0",
+    "langdetect>=1.0.9",
+    "pydub>=0.25.1",
+    "tenacity>=8.2.0",
+    "GPUtil>=1.4.0",
+    "pillow>=12.0.0",
+    "fonttools>=4.61.1",
+    # 后端 API 依赖
+    "fastapi>=0.110",
+    "uvicorn>=0.23",
+    "python-multipart>=0.0.9",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/WEIFENG2333/VideoCaptioner"
+Repository = "https://github.com/WEIFENG2333/VideoCaptioner"
+Issues = "https://github.com/WEIFENG2333/VideoCaptioner/issues"
+
+[project.scripts]
+# 后端 API 入口
+videocaptioner-api = "app.api.main:run_server"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.0",
+    "ruff>=0.4.0",
+    "pytest>=8.0.0",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+include = ["app"]
+exclude = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "work-dir",
+    "AppData",
+    "resource",
+    "**/node_modules"
+]
+# 导入相关
+reportMissingImports = "warning"
+reportMissingTypeStubs = false
+# 类型检查级别（降低严格度）
+reportGeneralTypeIssues = false
+reportOptionalOperand = "warning"
+reportOptionalMemberAccess = false
+reportArgumentType = "warning"
+# 禁用的检查
+reportCallIssue = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --tb=short --disable-warnings"
+markers = [
+    "integration: Integration tests that require external services",
+    "slow: Slow running tests",
+    "llm: Tests that require LLM API access",
+    "translator: Tests for translation modules",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
