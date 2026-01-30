@@ -91,6 +91,7 @@ ASR/转录：
 总结生成（LLM）：
 - `TextSummarizeNode`
 - `MergeSummaryNode`
+- `ChunkedSummarizeNode`（长文本分块总结，可配置块大小）
 
 #### 条件与分支（示例）
 
@@ -195,6 +196,25 @@ edges:
 - 节点级缓存：相同输入可复用（字幕解析、VLM、转录等）
 - 失败重试：外部 API 节点支持重试策略
 - 幂等性：节点输出可重复计算，不影响全局结果
+
+#### 长文本总结策略（新增设计）
+
+> 适配“字幕很长”的场景，避免仅截断前 8000 字符。
+
+设计思路：
+- 将 `asr_data` 拼接文本按块切分，逐块调用 LLM 生成 **chunk summary**。
+- 最后对所有 chunk summary 做一次 **merge summary**（可复用 `MergeSummaryNode` 或在 `TextSummarizeNode` 内部完成）。
+- **分块大小可配置**，通过节点参数传入（例如 `chunk_size_chars`）。
+
+建议参数：
+- `chunk_size_chars`：单块最大字符数（必配）
+- `chunk_overlap_chars`：相邻块重叠字符数（可选，默认 0）
+- `chunk_max_count`：最大块数（可选，防止极端超长）
+- `merge_prompt`：合并总结提示词（可选）
+
+可选落地方式：
+1) 在 `TextSummarizeNode` 内部实现“分块 → 合并”逻辑（单节点）
+2) 新增 `ChunkedSummarizeNode` 专职分块；输出 `chunk_summaries`，由 `MergeSummaryNode` 合并（双节点）
 
 #### 可观测性
 

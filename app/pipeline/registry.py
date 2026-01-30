@@ -103,24 +103,49 @@ def get_default_registry() -> NodeRegistry:
 
 
 def _register_builtin_nodes(registry: NodeRegistry) -> None:
-    """注册内置节点"""
+    """注册内置节点（使用真实实现）"""
     # 延迟导入避免循环依赖
-    from app.pipeline.nodes.mock import (
+    from app.pipeline.nodes.core import (
         InputNode,
         FetchMetadataNode,
         DownloadSubtitleNode,
+        DownloadVideoNode,
+        ParseSubtitleNode,
         ValidateSubtitleNode,
         ExtractAudioNode,
         TranscribeNode,
         DetectSilenceNode,
         TextSummarizeNode,
+        SampleFramesNode,
+        VlmSummarizeNode,
+        MergeSummaryNode,
     )
 
+    # 输入验证
     registry.register("InputNode", InputNode)
+
+    # 元数据获取
     registry.register("FetchMetadataNode", FetchMetadataNode)
+
+    # 下载相关
     registry.register("DownloadSubtitleNode", DownloadSubtitleNode)
+    registry.register("DownloadVideoNode", DownloadVideoNode)
+
+    # 字幕处理
+    registry.register("ParseSubtitleNode", ParseSubtitleNode)
     registry.register("ValidateSubtitleNode", ValidateSubtitleNode)
+
+    # 音频处理
     registry.register("ExtractAudioNode", ExtractAudioNode)
-    registry.register("TranscribeNode", TranscribeNode)
     registry.register("DetectSilenceNode", DetectSilenceNode)
+
+    # 转录
+    registry.register("TranscribeNode", TranscribeNode)
+
+    # 总结生成
     registry.register("TextSummarizeNode", TextSummarizeNode)
+
+    # VLM 相关（阶段4）
+    registry.register("SampleFramesNode", SampleFramesNode)
+    registry.register("VlmSummarizeNode", VlmSummarizeNode)
+    registry.register("MergeSummaryNode", MergeSummaryNode)

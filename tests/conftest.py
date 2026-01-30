@@ -9,32 +9,32 @@ from pathlib import Path
 from typing import Dict, List
 
 import pytest
-from dotenv import load_dotenv
-from openinference.instrumentation.openai import OpenAIInstrumentor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
-# from phoenix.otel import register
-from opentelemetry.sdk import trace as trace_sdk
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+# 可选依赖：dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent / ".env")
+except ImportError:
+    pass
+
+# 可选依赖：OpenTelemetry 追踪
+try:
+    from openinference.instrumentation.openai import OpenAIInstrumentor
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk import trace as trace_sdk
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+    tracer_provider = trace_sdk.TracerProvider()
+    tracer_provider.add_span_processor(
+        SimpleSpanProcessor(OTLPSpanExporter(endpoint="http://localhost:6006/v1/traces"))
+    )
+    OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
+except ImportError:
+    pass
 
 from app.core.asr.asr_data import ASRData, ASRDataSeg
 from app.core.translate import SubtitleProcessData, TargetLanguage
 from app.core.utils import cache
-
-# Load environment variables from tests/.env
-load_dotenv(Path(__file__).parent / ".env")
-
-# Register OpenAI OTel tracing
-# tracer_provider = register(
-#     project_name="default",
-#     endpoint="http://localhost:6006/v1/traces",
-#     auto_instrument=True,
-# )
-tracer_provider = trace_sdk.TracerProvider()
-tracer_provider.add_span_processor(
-    SimpleSpanProcessor(OTLPSpanExporter(endpoint="http://localhost:6006/v1/traces"))
-)
-OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
 
 # Disable cache for testing

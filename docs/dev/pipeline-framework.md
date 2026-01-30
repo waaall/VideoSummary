@@ -77,8 +77,34 @@
 
 无声判定建议基于以下任一条件成立：
 
-- `audio_rms < audio_rms_max_for_silence`
+- `audio_rms <= audio_rms_max_for_silence`
 - `transcript_token_count / video_duration < transcript_token_per_min_min`
+
+### 长文本总结策略（推荐）
+
+字幕很长时，单次提示会被截断；推荐采用“分块摘要 → 合并摘要”的方式。
+
+建议策略：
+- 按字符数切分 `asr_data` 拼接后的全文，逐块生成 **chunk summary**。
+- 将所有 chunk summary 合并为最终摘要（可复用 `MergeSummaryNode`）。
+
+建议参数（节点配置）：
+- `chunk_size_chars`：单块最大字符数（必配）
+- `chunk_overlap_chars`：相邻块重叠字符数（可选，默认 0）
+- `chunk_max_count`：最大块数（可选）
+- `merge_prompt`：合并总结提示词（可选）
+
+落地方式：
+1) 在 `TextSummarizeNode` 内部实现分块与合并（单节点）
+2) 新增 `ChunkedSummarizeNode` 负责分块摘要，再由 `MergeSummaryNode` 合并（双节点）
+
+### 字幕覆盖率计算（校验规则）
+
+字幕覆盖率按“所有字幕片段时长求和 / 视频总时长”计算，避免用最早开始到最晚结束的跨度导致稀疏字幕被高估。
+
+### URL 视频下载落地路径（实现细节）
+
+当使用 yt-dlp 下载 URL 视频时，最终文件路径以 `requested_downloads[].filepath` 或 `prepare_filename` 返回值为准；如未命中，则回退扫描下载目录中常见视频格式文件。
 
 ### 本地视频流程（推荐）
 
