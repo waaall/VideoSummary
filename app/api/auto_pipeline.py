@@ -118,6 +118,12 @@ def build_url_auto_pipeline(options: Dict[str, Any]) -> PipelineConfig:
     download_params: Dict[str, Any] = {}
     if work_dir:
         download_params["work_dir"] = work_dir
+    download_overrides = options.get("download")
+    if isinstance(download_overrides, dict):
+        if download_overrides.get("max_filesize_mb") is not None:
+            download_params["max_filesize_mb"] = download_overrides["max_filesize_mb"]
+        if download_overrides.get("rate_limit") is not None:
+            download_params["rate_limit"] = download_overrides["rate_limit"]
 
     extract_audio_params: Dict[str, Any] = {}
     if audio_track_index is not None:

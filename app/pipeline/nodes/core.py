@@ -17,8 +17,15 @@ from app.core.utils.logger import setup_logger
 from app.core.utils.video_utils import get_video_info, video2audio
 from app.pipeline.context import PipelineContext
 from app.pipeline.node_base import PipelineNode
+from app.pipeline.limits import transcode_limiter, transcribe_limiter
 
 logger = setup_logger("pipeline_nodes")
+
+DEFAULT_SUBTITLE_MAX_SIZE_MB = int(os.getenv("SUBTITLE_MAX_SIZE_MB", "50"))
+DEFAULT_SUBTITLE_CHUNK_SIZE = int(os.getenv("SUBTITLE_DOWNLOAD_CHUNK_SIZE", "262144"))
+DEFAULT_SUBTITLE_TIMEOUT = float(os.getenv("SUBTITLE_DOWNLOAD_TIMEOUT", "30"))
+DEFAULT_VIDEO_MAX_SIZE_MB = int(os.getenv("VIDEO_MAX_SIZE_MB", "4096"))
+DEFAULT_VIDEO_RATE_LIMIT = int(os.getenv("VIDEO_DOWNLOAD_RATE_LIMIT", "0"))
 
 
 # ============ 输入验证节点 ============
@@ -117,7 +124,9 @@ class DownloadSubtitleNode(PipelineNode):
         if not url:
             raise ValueError("source_url 未设置")
 
-        work_dir = self.params.get("work_dir", str(WORK_PATH))
+        work_dir = self.params.get("work_dir") or str(
+            WORK_PATH / "subtitles" / ctx.run_id
+        )
         subtitle_path = self._download_subtitle(url, work_dir)
 
         if subtitle_path:
@@ -130,7 +139,7 @@ class DownloadSubtitleNode(PipelineNode):
     def _download_subtitle(self, url: str, work_dir: str) -> Optional[str]:
         """下载字幕文件"""
         # 创建临时目录存放字幕
-        subtitle_dir = Path(work_dir) / "subtitles"
+        subtitle_dir = Path(work_dir)
         subtitle_dir.mkdir(parents=True, exist_ok=True)
 
         ydl_opts = {
@@ -173,11 +182,14 @@ class DownloadSubtitleNode(PipelineNode):
 
                 # 如果有字幕链接，直接下载
                 if subtitle_link:
-                    response = requests.get(subtitle_link, timeout=30)
-                    if response.ok:
-                        ext = "vtt" if "vtt" in subtitle_link else "srt"
-                        subtitle_path = subtitle_dir / f"downloaded.{ext}"
-                        subtitle_path.write_text(response.text, encoding="utf-8")
+                    ext = "vtt" if "vtt" in subtitle_link else "srt"
+                    subtitle_path = subtitle_dir / f"downloaded.{ext}"
+                    downloaded = self._stream_download_subtitle(
+                        subtitle_link,
+                        subtitle_path,
+                        max_size_mb=DEFAULT_SUBTITLE_MAX_SIZE_MB,
+                    )
+                    if downloaded:
                         return str(subtitle_path)
 
                 # 尝试使用 yt-dlp 下载
@@ -194,6 +206,49 @@ class DownloadSubtitleNode(PipelineNode):
 
         return None
 
+    def _stream_download_subtitle(
+        self,
+        url: str,
+        dest_path: Path,
+        *,
+        max_size_mb: int,
+    ) -> bool:
+        max_bytes = max_size_mb * 1024 * 1024
+        success = False
+        try:
+            with requests.get(
+                url, stream=True, timeout=(10, DEFAULT_SUBTITLE_TIMEOUT)
+            ) as response:
+                if not response.ok:
+                    return False
+                content_length = response.headers.get("Content-Length")
+                if content_length and int(content_length) > max_bytes:
+                    logger.warning("字幕文件过大，拒绝下载")
+                    return False
+                size = 0
+                with open(dest_path, "wb") as f:
+                    for chunk in response.iter_content(
+                        chunk_size=DEFAULT_SUBTITLE_CHUNK_SIZE
+                    ):
+                        if not chunk:
+                            continue
+                        size += len(chunk)
+                        if size > max_bytes:
+                            logger.warning("字幕文件超过限制，停止下载")
+                            return False
+                        f.write(chunk)
+            success = dest_path.exists()
+            return success
+        except Exception as e:
+            logger.warning(f"字幕流式下载失败: {e}")
+            return False
+        finally:
+            if not success and dest_path.exists():
+                try:
+                    dest_path.unlink()
+                except OSError:
+                    pass
+
     def get_output_keys(self) -> List[str]:
         return ["subtitle_path"]
 
@@ -206,7 +261,9 @@ class DownloadVideoNode(PipelineNode):
         if not url:
             raise ValueError("source_url 未设置")
 
-        work_dir = self.params.get("work_dir", str(WORK_PATH))
+        work_dir = self.params.get("work_dir") or str(
+            WORK_PATH / "downloads" / ctx.run_id
+        )
         video_path = self._download_video(url, work_dir)
 
         if not video_path:
@@ -231,6 +288,8 @@ class DownloadVideoNode(PipelineNode):
 
     def _download_video(self, url: str, work_dir: str) -> Optional[str]:
         """下载视频文件"""
+        max_filesize = self.params.get("max_filesize_mb", DEFAULT_VIDEO_MAX_SIZE_MB)
+        rate_limit = self.params.get("rate_limit", DEFAULT_VIDEO_RATE_LIMIT)
         ydl_opts = {
             "outtmpl": {"default": "%(title).200s.%(ext)s"},
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -238,6 +297,10 @@ class DownloadVideoNode(PipelineNode):
             "no_warnings": True,
             "noprogress": True,
         }
+        if max_filesize:
+            ydl_opts["max_filesize"] = int(max_filesize) * 1024 * 1024
+        if rate_limit:
+            ydl_opts["ratelimit"] = int(rate_limit)
 
         # 检查 cookies 文件
         cookiefile_path = APPDATA_PATH / "cookies.txt"
@@ -380,8 +443,9 @@ class ExtractAudioNode(PipelineNode):
 
         audio_path = temp_dir / f"{ctx.run_id}_audio.wav"
 
-        # 执行转换
-        success = video2audio(video_path, str(audio_path), audio_track_index)
+        # 执行转换（并发限制）
+        with transcode_limiter.acquire():
+            success = video2audio(video_path, str(audio_path), audio_track_index)
 
         if not success or not audio_path.exists():
             raise RuntimeError("音频提取失败")
@@ -455,9 +519,10 @@ class TranscribeNode(PipelineNode):
         # 延迟导入避免循环依赖
         from app.core.asr import transcribe
 
-        # 执行转录
-        logger.info(f"开始转录: {audio_path}")
-        asr_data = transcribe(audio_path, transcribe_config, callback=None)
+        # 执行转录（并发限制）
+        with transcribe_limiter.acquire():
+            logger.info(f"开始转录: {audio_path}")
+            asr_data = transcribe(audio_path, transcribe_config, callback=None)
 
         # 计算 token 数（使用片段文本总字符数估算）
         total_text = "".join(seg.text for seg in asr_data.segments)

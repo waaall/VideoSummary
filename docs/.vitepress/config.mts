@@ -287,6 +287,7 @@ export default defineConfig({
               text: '开发文档',
               items: [
                 { text: '架构设计', link: '/dev/architecture' },
+                { text: '上传与存储', link: '/dev/upload-storage' },
                 { text: 'API 文档', link: '/dev/api' },
                 { text: '贡献指南', link: '/dev/contributing' }
               ]

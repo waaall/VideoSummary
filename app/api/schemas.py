@@ -77,6 +77,9 @@ class TraceEvent(BaseModel):
     elapsed_ms: Optional[int] = None
     error: Optional[str] = None
     output_keys: Optional[List[str]] = None
+    started_at: Optional[float] = None
+    ended_at: Optional[float] = None
+    retryable: Optional[bool] = None
 
 
 class PipelineRunResponse(BaseModel):
@@ -85,3 +88,63 @@ class PipelineRunResponse(BaseModel):
     summary_text: Optional[str] = None
     context: Dict[str, Any] = Field(default_factory=dict)
     trace: List[TraceEvent] = Field(default_factory=list)
+    created_at: Optional[float] = None
+    updated_at: Optional[float] = None
+    started_at: Optional[float] = None
+    ended_at: Optional[float] = None
+    error: Optional[str] = None
+
+
+class PipelineRunCreateResponse(BaseModel):
+    run_id: str
+    status: str
+    queued_at: Optional[float] = None
+
+
+# ============ 文件上传相关 ============
+
+
+class UploadResponse(BaseModel):
+    """文件上传响应"""
+    file_id: str = Field(..., description="文件唯一标识，用于后续流程引用")
+    original_name: str = Field(..., description="原始文件名")
+    size: int = Field(..., description="文件大小（字节）")
+    mime_type: str = Field(..., description="MIME 类型")
+    file_type: str = Field(..., description="文件类型: video|audio|subtitle")
+
+
+class LocalPipelineInputs(BaseModel):
+    """本地流程输入（支持 file_id）
+
+    优先使用 file_id 参数，如果提供则忽略对应的 path 参数。
+    """
+    # file_id 方式（推荐，前端上传后使用）
+    video_file_id: Optional[str] = Field(
+        default=None, description="视频文件 ID（通过 /uploads 上传后获得）"
+    )
+    audio_file_id: Optional[str] = Field(
+        default=None, description="音频文件 ID（通过 /uploads 上传后获得）"
+    )
+    subtitle_file_id: Optional[str] = Field(
+        default=None, description="字幕文件 ID（通过 /uploads 上传后获得）"
+    )
+
+    # path 方式（服务端本地路径，内部调试用）
+    video_path: Optional[str] = Field(
+        default=None, description="视频文件本地路径（服务端路径）"
+    )
+    audio_path: Optional[str] = Field(
+        default=None, description="音频文件本地路径（服务端路径）"
+    )
+    subtitle_path: Optional[str] = Field(
+        default=None, description="字幕文件本地路径（服务端路径）"
+    )
+
+    extra: Dict[str, Any] = Field(default_factory=dict)
+
+
+class LocalPipelineRunRequest(BaseModel):
+    """本地流程请求（支持 file_id）"""
+    inputs: LocalPipelineInputs
+    thresholds: Optional[PipelineThresholds] = None
+    options: Dict[str, Any] = Field(default_factory=dict)

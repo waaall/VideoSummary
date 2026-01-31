@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, Optional, Set
+from typing import Callable, Dict, Optional, Set
 
 from app.pipeline.condition import ConditionEvaluationError, evaluate_condition
 from app.pipeline.context import PipelineContext
@@ -32,6 +32,13 @@ class PipelineRunner:
         self,
         graph: PipelineGraph,
         registry: Optional[NodeRegistry] = None,
+        on_node_start: Optional[Callable[[str, float], None]] = None,
+        on_node_end: Optional[
+            Callable[
+                [str, str, float, float, Optional[int], Optional[str], Optional[list]],
+                None,
+            ]
+        ] = None,
     ):
         """
         初始化执行器
@@ -42,6 +49,8 @@ class PipelineRunner:
         """
         self.graph = graph
         self.registry = registry or get_default_registry()
+        self.on_node_start = on_node_start
+        self.on_node_end = on_node_end
 
         # 创建节点实例
         self._nodes: Dict[str, PipelineNode] = {}
@@ -82,20 +91,36 @@ class PipelineRunner:
             if not should_run:
                 # 跳过节点
                 skipped.add(node_id)
+                now = time.time()
                 ctx.add_trace(
                     node_id=node_id,
                     status="skipped",
                     error=skip_reason,
+                    started_at=now,
+                    ended_at=now,
                 )
+                if self.on_node_end:
+                    self.on_node_end(
+                        node_id,
+                        "skipped",
+                        now,
+                        now,
+                        None,
+                        skip_reason,
+                        None,
+                    )
                 continue
 
             # 执行节点
             node = self._nodes[node_id]
             start_time = time.time()
+            if self.on_node_start:
+                self.on_node_start(node_id, start_time)
 
             try:
                 node.run(ctx)
-                elapsed_ms = int((time.time() - start_time) * 1000)
+                end_time = time.time()
+                elapsed_ms = int((end_time - start_time) * 1000)
                 executed.add(node_id)
 
                 ctx.add_trace(
@@ -103,16 +128,41 @@ class PipelineRunner:
                     status="completed",
                     elapsed_ms=elapsed_ms,
                     output_keys=node.get_output_keys(),
+                    started_at=start_time,
+                    ended_at=end_time,
                 )
+                if self.on_node_end:
+                    self.on_node_end(
+                        node_id,
+                        "completed",
+                        start_time,
+                        end_time,
+                        elapsed_ms,
+                        None,
+                        node.get_output_keys(),
+                    )
 
             except Exception as e:
-                elapsed_ms = int((time.time() - start_time) * 1000)
+                end_time = time.time()
+                elapsed_ms = int((end_time - start_time) * 1000)
                 ctx.add_trace(
                     node_id=node_id,
                     status="failed",
                     elapsed_ms=elapsed_ms,
                     error=str(e),
+                    started_at=start_time,
+                    ended_at=end_time,
                 )
+                if self.on_node_end:
+                    self.on_node_end(
+                        node_id,
+                        "failed",
+                        start_time,
+                        end_time,
+                        elapsed_ms,
+                        str(e),
+                        None,
+                    )
                 raise PipelineExecutionError(
                     f"节点 {node_id} 执行失败: {e}"
                 ) from e

@@ -13,6 +13,34 @@
 1. 本次为全新后端设计，不需要兼容历史用户数据/配置；仅需要适配 `app/core` 中的现有代码能力。
 2. “new” 之类的命名没有必要；在明确只支持新结构的前提下，这类命名是多余且易产生歧义，应使用中性命名。
 
+## 评审结论（可执行性与补强点）
+
+整体思路很稳，方向正确，尤其是把 **大文件 I/O 统一流式** 和 **API/Worker 解耦** 作为硬约束，这是这类系统最常见的坑。当前设计已具备“可落地 + 可扩展 + 抗 DoS”的骨架。
+
+### 做得对的关键点
+
+- **流式上传/下载 + 过程限额**：直接解决 `await file.read()` 的 OOM/DoS 风险。
+- **Control Plane / Worker 解耦**：API 只做任务编排与状态查询，后续扩展到队列/多 worker 很顺畅。
+- **产物（artifact）+ 状态机**：可恢复、可重试、可观测，进度监控天然可落地。
+
+### 建议补强（落地更稳）
+
+- **统一 ID 语义**：`job_id/run_id` 建议只保留一个，避免前后端混乱。
+- **限制策略**：除流式限额外，还需补：
+  - `Content-Length` 校验（有则提前拒）
+  - 读/写超时
+  - 速率限制（IP/Token）
+  - 并发上限（上传/转码/转录）
+- **存储一致性**：本地磁盘 + 元数据持久化（SQLite/Redis/JSON）确保重启后 `file_id` 可恢复。
+- **流水线状态表**：每步 `started_at/ended_at/status/error/retryable` 统一入库（最小版 SQLite 足够）。
+
+### 与现有代码的最小增量对齐
+
+- `PipelineRunner` 保持逻辑，但执行放到 Worker。
+- API 只负责：创建任务、入队、返回 `job_id`、查询状态。
+- `/uploads` 改为流式写盘（chunked），写入过程内强制限额。
+- `PipelineContext.trace` 直接落库，作为进度接口的数据源。
+
 ## 新增（已提供 FastAPI 骨架）
 
 - `app/api/main.py`：FastAPI 应用入口（**对外只保留 `/pipeline/run` 作为统一入口**）
@@ -247,6 +275,84 @@ edges:
 
 - `POST /pipeline/run`：**对外单入口**，按 DAG 配置执行
 - `POST /vlm/summarize` / `POST /llm/summarize`：如需独立调试可作为**内网/内部服务**保留；不对外公开则仅作为节点内部调用
+- `POST /uploads`：本地文件上传（前端先上传再触发流程）
+- `GET /pipeline/run/{run_id}`：执行状态查询（轮询）
+- `GET /pipeline/run/{run_id}/events`：进度事件流（SSE，可选）
+
+### 新增设计（优先级：上传 > 异步/进度）
+
+> 执行入口仍统一为 `/pipeline/run`（或现有 `/pipeline/auto/*`），
+> `/uploads` 与 `/pipeline/run/{run_id}` 为前端配套能力，不改变主入口定位。
+
+#### 1) 本地文件上传（优先）
+
+前端无法直接传递本机路径给服务端，本地流程需先上传文件并拿到服务端可引用的 `file_id`。
+
+**接口**
+```
+POST /uploads
+Content-Type: multipart/form-data
+```
+
+**请求体（multipart）**
+- `file`: 单文件（视频 / 音频 / 字幕）
+
+**响应（建议）**
+```json
+{
+  "file_id": "f_abc123",
+  "original_name": "video.mp4",
+  "size": 12345678,
+  "mime_type": "video/mp4",
+  "stored_path": "/work-dir/uploads/f_abc123/video.mp4"
+}
+```
+
+> 对外可不返回 `stored_path`，仅返回 `file_id`（推荐）；服务端内部通过 `file_id` 解析真实路径。
+
+**实现要点**
+- 文件类型白名单（视频/音频/字幕），扩展名 + MIME 双校验。
+- 文件大小上限与前端一致（统一配置）。
+- 统一存储目录（建议 `WORK_PATH/uploads/`），避免 `/tmp` 丢失。
+- 安全处理文件名与路径，防目录穿越。
+- 过期清理策略（TTL / 定时任务）。
+
+**与流程的衔接**
+- `POST /pipeline/auto/local` 支持 `video_file_id` / `audio_file_id` / `subtitle_file_id`
+  或统一 `file_id` + `file_type`，由后端解析为 `video_path/subtitle_path/audio_path`。
+
+#### 2) 执行监控（异步与进度更新）
+
+前端需要轮询或订阅执行状态，最小要求是轮询。
+
+**轮询接口**
+```
+GET /pipeline/run/{run_id}
+```
+
+**响应（示例）**
+```json
+{
+  "run_id": "r_abc123",
+  "status": "running",
+  "summary_text": null,
+  "context": {"source_type": "url"},
+  "trace": [
+    {"node_id": "input", "status": "completed", "elapsed_ms": 120}
+  ],
+  "updated_at": "2026-01-31T10:20:30Z"
+}
+```
+
+**最小落地**
+- `POST /pipeline/auto/*` 返回 `run_id + status=running`，后台异步执行。
+- 运行态存储（内存/Redis/DB），支持 `run_id -> status/trace/summary` 查询。
+
+**可选增强（SSE）**
+```
+GET /pipeline/run/{run_id}/events
+```
+事件字段建议包含：`run_id`、`event_type`（trace_update/status_update/completed/failed）、`payload`。
 
 ## DAG 实现中的复用点与必要改动（避免重复造轮子）
 

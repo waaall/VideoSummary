@@ -16,7 +16,7 @@ class PipelineContext:
     """管线执行上下文，承载执行过程中的全局状态"""
 
     # 运行标识
-    run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    run_id: str = field(default_factory=lambda: f"r_{uuid.uuid4().hex}")
 
     # 输入相关
     source_type: str = ""
@@ -69,6 +69,9 @@ class PipelineContext:
         elapsed_ms: Optional[int] = None,
         error: Optional[str] = None,
         output_keys: Optional[List[str]] = None,
+        started_at: Optional[float] = None,
+        ended_at: Optional[float] = None,
+        retryable: Optional[bool] = None,
     ) -> None:
         """添加执行追踪记录"""
         self.trace.append(
@@ -78,6 +81,9 @@ class PipelineContext:
                 elapsed_ms=elapsed_ms,
                 error=error,
                 output_keys=output_keys,
+                started_at=started_at,
+                ended_at=ended_at,
+                retryable=retryable,
             )
         )
 

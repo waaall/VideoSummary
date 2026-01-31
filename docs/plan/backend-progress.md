@@ -212,21 +212,84 @@ tests/test_pipeline/
 
 ---
 
-## 阶段 4：增强与稳定化
+## 阶段 4：增强与稳定化（进行中）
+
+**状态：进行中**
+**开始日期：2026-01-31**
+
 目标：提升可靠性与可观测性，接入可选能力。
-范围/任务：
-- VLM 抽帧与视觉总结节点（可选/可开关）
-- 长字幕分块总结（可配置分块大小），分块摘要合并策略
-- 节点缓存、失败重试、幂等性策略
-- 并发执行与短路策略
-- 关键测试样例与文档完善
-交付物：
+
+### 已完成内容
+
+#### 1. 本地文件上传接口 `/uploads` ✅
+
+**新增文件**
+- `app/api/uploads.py`：文件上传管理模块
+- `tests/test_api/__init__.py`
+- `tests/test_api/test_uploads.py`：单元测试（17 个）
+- `tests/test_api/test_api_uploads.py`：API 集成测试（8 个）
+
+**功能实现**
+- [x] `POST /uploads`：文件上传端点
+- [x] 文件类型白名单校验（扩展名 + MIME 双校验）
+  - 视频：mp4, mkv, webm, mov, avi, flv, wmv
+  - 音频：mp3, wav, flac, aac, m4a, ogg, wma
+  - 字幕：srt, vtt, ass, ssa, sub
+- [x] 文件大小限制（默认 2GB）
+- [x] 安全路径处理（防目录穿越、特殊字符过滤、长度限制）
+- [x] TTL 过期清理（默认 24 小时，后台线程定期清理）
+- [x] `file_id -> stored_path` 映射（FileStorage 单例管理）
+
+**数据模型（schemas.py）**
+- [x] `UploadResponse`：上传响应（file_id, original_name, size, mime_type, file_type）
+- [x] `LocalPipelineInputs`：支持 file_id 的本地流程输入
+- [x] `LocalPipelineRunRequest`：支持 file_id 的本地流程请求
+
+**流程衔接**
+- [x] `/pipeline/auto/local` 支持 `video_file_id` / `audio_file_id` / `subtitle_file_id`
+- [x] file_id 优先于 path 参数
+- [x] 类型校验：file_id 类型必须与参数名匹配
+
+**测试覆盖（25 个测试）**
+- [x] FileStorage 单元测试：17 个
+- [x] API 端点集成测试：8 个
+
+### 待完成内容
+
+- [ ] 统一 ID 语义（`job_id`/`run_id` 仅保留一个，对外一致）
+- [ ] 大文件 I/O 流式化与限制策略补强
+  - 上传：流式写盘 + 过程限额（替换 `await file.read()`）
+  - 下载：流式下载 + 过程限额
+  - `Content-Length` 预判 + 读/写超时
+  - 速率限制（IP/Token）与并发上限（上传/转码/转录）
+- [ ] API/Worker 解耦落地
+  - API：创建任务 + 入队 + 返回 ID + 查询状态
+  - Worker：下载/转码/转录/抽帧/LLM/VLM 执行
+- [ ] 存储一致性
+  - 上传文件元数据持久化（SQLite/Redis/JSON）
+  - 重启可恢复 `file_id -> path`
+- [ ] 流水线状态表
+  - 每步 `started_at/ended_at/status/error/retryable` 入库
+  - `trace` 作为进度接口数据源
+- [ ] 执行监控与进度更新
+  - `GET /pipeline/run/{run_id}` 轮询查询
+  - 运行态存储（内存/Redis/DB）
+  - 可选 SSE `/pipeline/run/{run_id}/events`
+- [ ] VLM 抽帧与视觉总结节点（可选/可开关）
+- [ ] 长字幕分块总结（可配置分块大小），分块摘要合并策略
+- [ ] 节点缓存、失败重试、幂等性策略
+- [ ] 并发执行与短路策略
+- [ ] 关键测试样例与文档完善
+
+### 交付物
 - 稳定的可配置后端引擎
 - 流程文档与示例配置
-验收标准：
+
+### 验收标准
 - 关键路径有测试或可复现实例
 - trace 明确，失败可定位
-风险与缓解：
+
+### 风险与缓解
 - 外部服务不稳定：降级路径与重试
 
 里程碑建议
