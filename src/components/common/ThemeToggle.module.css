@@ -1,0 +1,31 @@
+/**
+ * 主题切换组件样式
+ */
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.toggleButton:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 120px;
+}
+
+.checkmark {
+  margin-left: auto;
+  color: var(--color-accent-primary);
+}

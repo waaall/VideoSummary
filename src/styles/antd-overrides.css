@@ -1,0 +1,178 @@
+/**
+ * Ant Design 样式覆盖
+ * 统一组件风格与主题设计
+ */
+
+/* 按钮 */
+.ant-btn {
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.ant-btn-primary {
+  background: var(--gradient-accent);
+  border: none;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
+}
+
+.ant-btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4);
+}
+
+/* 输入框 */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-input-number {
+  background: var(--color-bg-secondary) !important;
+  border-color: var(--color-border) !important;
+  transition: all var(--transition-fast);
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-select-selector:hover,
+.ant-input-number:hover {
+  border-color: var(--color-accent-primary) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-input-number-focused {
+  border-color: var(--color-accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.2) !important;
+}
+
+/* 卡片 */
+.ant-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.ant-card-head {
+  border-bottom-color: var(--color-border-light);
+}
+
+.ant-card-head-title {
+  font-weight: 600;
+}
+
+/* Tabs */
+.ant-tabs-tab {
+  transition: all var(--transition-fast);
+}
+
+.ant-tabs-tab:hover {
+  color: var(--color-accent-primary);
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-accent-primary) !important;
+}
+
+.ant-tabs-ink-bar {
+  background: var(--gradient-accent);
+}
+
+/* Collapse */
+.ant-collapse {
+  background: transparent;
+  border: none;
+}
+
+.ant-collapse-header {
+  padding: var(--spacing-sm) 0 !important;
+}
+
+.ant-collapse-content {
+  background: transparent;
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Upload */
+.ant-upload-drag {
+  border-color: var(--color-border);
+  background: var(--color-bg-secondary);
+  transition: all var(--transition-normal);
+}
+
+.ant-upload-drag:hover {
+  border-color: var(--color-accent-primary);
+}
+
+.ant-upload-drag-icon .anticon {
+  color: var(--color-accent-primary);
+}
+
+/* Tag */
+.ant-tag {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+}
+
+/* Progress */
+.ant-progress-inner {
+  background: var(--color-bg-tertiary);
+}
+
+/* Message */
+.ant-message-notice-content {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dropdown */
+.ant-dropdown-menu {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.ant-dropdown-menu-item {
+  transition: background var(--transition-fast);
+}
+
+.ant-dropdown-menu-item:hover {
+  background: var(--color-bg-hover);
+}
+
+/* Tooltip */
+.ant-tooltip-inner {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.ant-tooltip-arrow::before {
+  background: var(--color-bg-elevated);
+}
+
+/* Empty */
+.ant-empty-description {
+  color: var(--color-text-tertiary);
+}
+
+/* Result */
+.ant-result-title {
+  color: var(--color-text-primary);
+}
+
+.ant-result-subtitle {
+  color: var(--color-text-secondary);
+}
+
+/* Spin */
+.ant-spin-dot-item {
+  background: var(--color-accent-primary);
+}
+
+.ant-spin-text {
+  color: var(--color-text-secondary);
+}

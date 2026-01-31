@@ -1,0 +1,84 @@
+/**
+ * URL 输入组件样式
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.inputGroup {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.inputWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.inputIcon {
+  position: absolute;
+  left: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: var(--color-text-tertiary);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.urlInput {
+  padding-left: calc(var(--spacing-md) * 2 + 1rem);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+}
+
+.submitButton {
+  flex-shrink: 0;
+  min-width: 140px;
+  font-weight: 500;
+}
+
+.hint {
+  font-size: 0.8125rem;
+  margin: 0;
+  padding-left: var(--spacing-xs);
+}
+
+.hint.error {
+  color: var(--color-error);
+}
+
+.hint.warning {
+  color: var(--color-warning);
+}
+
+/* 高级选项 */
+.advancedCollapse {
+  margin-top: var(--spacing-sm);
+}
+
+.advancedLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.advancedForm {
+  padding: var(--spacing-md) 0;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .inputGroup {
+    flex-direction: column;
+  }
+
+  .submitButton {
+    width: 100%;
+  }
+}
