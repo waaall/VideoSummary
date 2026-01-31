@@ -1,5 +1,5 @@
 ---
-title: LLM 配置指南 - VideoCaptioner
+title: LLM 配置指南 - VideoSummary
 description: 详细的 LLM API 配置教程，支持 OpenAI、DeepSeek、SiliconCloud、Gemini、Ollama 等多种服务商。包含费用估算和优化建议。
 head:
   - - meta
@@ -9,7 +9,7 @@ head:
 
 # LLM 配置指南
 
-LLM（大语言模型）是 VideoCaptioner 的核心功能之一，用于字幕断句、优化和翻译。本指南将帮助你配置 LLM API。
+LLM（大语言模型）是 VideoSummary 的核心功能之一，用于字幕断句、优化和翻译。本指南将帮助你配置 LLM API。
 
 ## 为什么需要配置 LLM？
 
@@ -27,7 +27,7 @@ LLM（大语言模型）是 VideoCaptioner 的核心功能之一，用于字幕�
 
 ## 支持的 LLM 服务商
 
-VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择：
+VideoSummary 支持多种 LLM 服务商，你可以根据自己的需求选择：
 
 | 服务商           | 特点                    | 推荐场景     |
 | ---------------- | ----------------------- | ------------ |
@@ -57,9 +57,9 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
 
    ![获取API Key](https://h1.appinn.me/file/get_api.png)
 
-3. **在 VideoCaptioner 中配置**
+3. **在 VideoSummary 中配置**
 
-   打开 VideoCaptioner，进入 **设置 → LLM 配置**：
+   打开 VideoSummary，进入 **设置 → LLM 配置**：
    - **LLM 服务**: 选择 `SiliconCloud`
    - **API Base URL**: `https://api.siliconflow.cn/v1`
    - **API Key**: 粘贴你的 API Key
@@ -83,7 +83,7 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
 
 1. 访问 [OpenAI Platform](https://platform.openai.com) 获取 API Key
 
-2. 在 VideoCaptioner 中配置：
+2. 在 VideoSummary 中配置：
    - **LLM 服务**: 选择 `OpenAI`
    - **API Base URL**: `https://api.openai.com/v1`
    - **API Key**: 你的 OpenAI API Key
@@ -100,7 +100,7 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
 
 1. 访问 [DeepSeek 平台](https://platform.deepseek.com) 注册并获取 API Key
 
-2. 在 VideoCaptioner 中配置：
+2. 在 VideoSummary 中配置：
    - **LLM 服务**: 选择 `DeepSeek`
    - **API Base URL**: `https://api.deepseek.com/v1`
    - **API Key**: 你的 DeepSeek API Key
@@ -124,15 +124,15 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
 
 1. **注册账号**
 
-   访问 [https://api.videocaptioner.cn/register](https://api.videocaptioner.cn/register?aff=UrLB) 注册（通过链接注册赠送 $0.4 测试余额）
+   访问 [https://api.VideoSummary.cn/register](https://api.VideoSummary.cn/register?aff=UrLB) 注册（通过链接注册赠送 $0.4 测试余额）
 
 2. **获取 API Key**
 
-   登录后访问 [Token 页面](https://api.videocaptioner.cn/token) 获取 API Key
+   登录后访问 [Token 页面](https://api.VideoSummary.cn/token) 获取 API Key
 
-3. **在 VideoCaptioner 中配置**
+3. **在 VideoSummary 中配置**
    - **LLM 服务**: 选择 `OpenAI`（兼容模式）
-   - **API Base URL**: `https://api.videocaptioner.cn/v1`
+   - **API Base URL**: `https://api.VideoSummary.cn/v1`
    - **API Key**: 你获取的 API Key
    - 点击 **"检查连接"** 测试
 
@@ -184,7 +184,7 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
    ollama serve
    ```
 
-4. **在 VideoCaptioner 中配置**
+4. **在 VideoSummary 中配置**
    - **LLM 服务**: 选择 `Ollama`
    - **API Base URL**: `http://localhost:11434/v1`
    - **API Key**: 留空或填写任意值
@@ -361,4 +361,4 @@ VideoCaptioner 支持多种 LLM 服务商，你可以根据自己的需求选择
 
 ---
 
-如果还有其他问题，欢迎在 [GitHub Issues](https://github.com/WEIFENG2333/VideoCaptioner/issues) 提问。
+如果还有其他问题，欢迎在 [GitHub Issues](https://github.com/WEIFENG2333/VideoSummary/issues) 提问。

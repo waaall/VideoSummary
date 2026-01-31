@@ -4,7 +4,7 @@ from pathlib import Path
 
 VERSION = "v1.4.0"
 YEAR = 2025
-APP_NAME = "VideoCaptioner"
+APP_NAME = "VideoSummary"
 AUTHOR = "Weifeng"
 
 HELP_URL = "https://github.com/WEIFENG2333/VideoCaptioner"

@@ -27,6 +27,27 @@ class TestInputNode:
 
         node.run(ctx)
         assert ctx.source_type == "local"
+        assert ctx.get("local_input_type") == "video"
+
+    def test_valid_local_audio_input(self):
+        """本地音频输入验证通过"""
+        node = InputNode(node_id="input", params={})
+        inputs = PipelineInputs(source_type="local", audio_path="/test.wav")
+        ctx = PipelineContext.from_inputs(inputs)
+
+        node.run(ctx)
+        assert ctx.source_type == "local"
+        assert ctx.get("local_input_type") == "audio"
+
+    def test_valid_local_subtitle_input(self):
+        """本地字幕输入验证通过"""
+        node = InputNode(node_id="input", params={})
+        inputs = PipelineInputs(source_type="local", subtitle_path="/test.srt")
+        ctx = PipelineContext.from_inputs(inputs)
+
+        node.run(ctx)
+        assert ctx.source_type == "local"
+        assert ctx.get("local_input_type") == "subtitle"
 
     def test_valid_url_input(self):
         """URL 输入验证通过"""
@@ -57,13 +78,13 @@ class TestInputNode:
         with pytest.raises(ValueError, match="必须提供 source_url"):
             node.run(ctx)
 
-    def test_local_without_video_path(self):
-        """本地类型缺少 video_path 抛出异常"""
+    def test_local_without_any_input(self):
+        """本地类型缺少所有输入路径抛出异常"""
         node = InputNode(node_id="input", params={})
         inputs = PipelineInputs(source_type="local")
         ctx = PipelineContext.from_inputs(inputs)
 
-        with pytest.raises(ValueError, match="必须提供 video_path"):
+        with pytest.raises(ValueError, match="必须提供 subtitle_path/audio_path/video_path"):
             node.run(ctx)
 
 

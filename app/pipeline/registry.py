@@ -115,6 +115,7 @@ def _register_builtin_nodes(registry: NodeRegistry) -> None:
         ExtractAudioNode,
         TranscribeNode,
         DetectSilenceNode,
+        WarningNode,
         TextSummarizeNode,
         SampleFramesNode,
         VlmSummarizeNode,
@@ -143,6 +144,7 @@ def _register_builtin_nodes(registry: NodeRegistry) -> None:
     registry.register("TranscribeNode", TranscribeNode)
 
     # 总结生成
+    registry.register("WarningNode", WarningNode)
     registry.register("TextSummarizeNode", TextSummarizeNode)
 
     # VLM 相关（阶段4）

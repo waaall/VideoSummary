@@ -11,6 +11,7 @@ from app.pipeline.nodes.core import (
     ExtractAudioNode,
     TranscribeNode,
     DetectSilenceNode,
+    WarningNode,
     TextSummarizeNode,
     SampleFramesNode,
     VlmSummarizeNode,
@@ -34,6 +35,7 @@ __all__ = [
     # 转录
     "TranscribeNode",
     # 总结
+    "WarningNode",
     "TextSummarizeNode",
     # VLM（阶段4）
     "SampleFramesNode",

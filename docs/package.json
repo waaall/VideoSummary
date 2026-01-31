@@ -1,7 +1,7 @@
 {
-  "name": "videocaptioner-docs",
+  "name": "VideoSummary-docs",
   "version": "1.4.0",
-  "description": "Documentation site for VideoCaptioner",
+  "description": "Documentation site for VideoSummary",
   "private": true,
   "scripts": {
     "docs:dev": "vitepress dev",

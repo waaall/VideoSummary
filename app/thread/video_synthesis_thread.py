@@ -62,7 +62,7 @@ class VideoSynthesisThread(QThread):
                     suffix=".srt",
                     delete=False,
                     encoding="utf-8",
-                    prefix="VideoCaptioner_soft_",
+                    prefix="VideoSummary_soft_",
                 ) as f:
                     srt_content = asr_data.to_srt(layout=config.subtitle_layout)
                     f.write(srt_content)

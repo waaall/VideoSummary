@@ -335,6 +335,7 @@ class WhisperModelEnum(Enum):
     MEDIUM = "medium"
     LARGE_V1 = "large-v1"
     LARGE_V2 = "large-v2"
+    LARGE_V3_TURBO = "large-v3-turbo"
 
 
 class FasterWhisperModelEnum(Enum):

@@ -1,18 +1,18 @@
 <div align="center">
-  <img src="./legacy-docs/images/logo.png"alt="VideoCaptioner Logo" width="100">
+  <img src="./legacy-docs/images/logo.png"alt="VideoSummary Logo" width="100">
   <p>卡卡字幕助手</p>
-  <h1>VideoCaptioner</h1>
+  <h1>VideoSummary</h1>
   <p>一款基于大语言模型(LLM)的视频字幕处理助手，支持语音识别、字幕断句、优化、翻译全流程处理</p>
 
 简体中文 / [正體中文](./legacy-docs/README_TW.md) / [English](./legacy-docs/README_EN.md) / [日本語](./legacy-docs/README_JA.md)
 
-📚 **[在线文档](https://weifeng2333.github.io/VideoCaptioner/)** | 🚀 **[快速开始](https://weifeng2333.github.io/VideoCaptioner/guide/getting-started)** | ⚙️ **[配置指南](https://weifeng2333.github.io/VideoCaptioner/config/llm)**
+📚 **[在线文档](https://weifeng2333.github.io/VideoSummary/)** | 🚀 **[快速开始](https://weifeng2333.github.io/VideoSummary/guide/getting-started)** | ⚙️ **[配置指南](https://weifeng2333.github.io/VideoSummary/config/llm)**
 
 </div>
 
 ## 项目介绍
 
-卡卡字幕助手（VideoCaptioner）操作简单且无需高配置，支持 API 和本地离线两种方式进行语音识别，利用大语言模型进行字幕智能断句、校正、翻译，字幕视频全流程一键处理。为视频配上效果惊艳的字幕。
+卡卡字幕助手（VideoSummary）操作简单且无需高配置，支持 API 和本地离线两种方式进行语音识别，利用大语言模型进行字幕智能断句、校正、翻译，字幕视频全流程一键处理。为视频配上效果惊艳的字幕。
 
 - 支持词级时间戳与 VAD 语音活动检测，识别准确率高
 - 基于 LLM 的语义理解，自动将逐字字幕重组为自然流畅的句子段落
@@ -45,11 +45,11 @@
 
 软件较为轻量，打包大小不足 60M,已集成所有必要环境，下载后可直接运行。
 
-1. 从 [Release](https://github.com/WEIFENG2333/VideoCaptioner/releases) 页面下载最新版本的可执行程序。或者：[蓝奏盘下载](https://wwwm.lanzoue.com/ii14G2pdsbej)
+1. 从 [Release](https://github.com/WEIFENG2333/VideoSummary/releases) 页面下载最新版本的可执行程序。或者：[蓝奏盘下载](https://wwwm.lanzoue.com/ii14G2pdsbej)
 
 2. 打开安装包进行安装
 
-3. LLM API 配置，（用于字幕断句、校正），可使用[本项目的中转站](https://api.videocaptioner.cn)
+3. LLM API 配置，（用于字幕断句、校正），可使用[本项目的中转站](https://api.VideoSummary.cn)
 
 4. 翻译配置，选择是否启用翻译，翻译服务（默认使用微软翻译，质量一般，推荐配置自己的 API KEY 使用大模型翻译）
 
@@ -61,18 +61,18 @@
 
 ```bash
 # 方式一：直接运行（自动安装 uv、克隆项目、安装相关依赖）
-curl -fsSL https://raw.githubusercontent.com/WEIFENG2333/VideoCaptioner/main/scripts/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/WEIFENG2333/VideoSummary/main/scripts/run.sh | bash
 
 # 方式二：先克隆再运行
-git clone https://github.com/WEIFENG2333/VideoCaptioner.git
-cd VideoCaptioner
+git clone https://github.com/WEIFENG2333/VideoSummary.git
+cd VideoSummary
 ./scripts/run.sh
 ```
 
 脚本会自动：
 
 1. 安装 [uv](https://docs.astral.sh/uv/) 包管理器（如果未安装）
-2. 克隆项目到 `~/VideoCaptioner`（如果不在项目目录中运行）
+2. 克隆项目到 `~/VideoSummary`（如果不在项目目录中运行）
 3. 安装所有 Python 依赖
 4. 启动应用
 
@@ -94,8 +94,8 @@ brew install ffmpeg
 #### 3. 克隆并运行
 
 ```bash
-git clone https://github.com/WEIFENG2333/VideoCaptioner.git
-cd VideoCaptioner
+git clone https://github.com/WEIFENG2333/VideoSummary.git
+cd VideoSummary
 uv sync          # 安装依赖
 uv run python main.py  # 运行
 ```
@@ -126,9 +126,9 @@ LLM 大模型是用来字幕段句、字幕优化、以及字幕翻译（如果�
 
 | 配置项         | 说明                                                                                                                                              |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SiliconCloud   | [SiliconCloud 官网](https://cloud.siliconflow.cn/i/onCHcaDx)配置方法请参考[配置文档](https://weifeng2333.github.io/VideoCaptioner/config/llm)<br>该并发较低，建议把线程设置为5以下。 |
+| SiliconCloud   | [SiliconCloud 官网](https://cloud.siliconflow.cn/i/onCHcaDx)配置方法请参考[配置文档](https://weifeng2333.github.io/VideoSummary/config/llm)<br>该并发较低，建议把线程设置为5以下。 |
 | DeepSeek       | [DeepSeek 官网](https://platform.deepseek.com)，建议使用 `deepseek-v3` 模型，<br>官方网站最近服务好像并不太稳定。                                 |
-| OpenAI兼容接口 | 如果有其他服务商的API，可直接在软件中填写。base_url 和api_key [VideoCaptioner API](https://api.videocaptioner.cn)                                 |
+| OpenAI兼容接口 | 如果有其他服务商的API，可直接在软件中填写。base_url 和api_key [VideoSummary API](https://api.VideoSummary.cn)                                 |
 
 注：如果用的 API 服务商不支持高并发，请在软件设置中将“线程数”调低，避免请求错误。
 
@@ -136,13 +136,13 @@ LLM 大模型是用来字幕段句、字幕优化、以及字幕翻译（如果�
 
 如果希望高并发，或者希望在在软件内使用使用 OpenAI 或者 Claude 等优质大模型进行字幕校正和翻译。
 
-可使用本项目的✨LLM API中转站✨： [https://api.videocaptioner.cn](https://api.videocaptioner.cn)
+可使用本项目的✨LLM API中转站✨： [https://api.VideoSummary.cn](https://api.VideoSummary.cn)
 
 其支持高并发，性价比极高，且有国内外大量模型可挑选。
 
 注册获取key之后，设置中按照下面配置：
 
-BaseURL: `https://api.videocaptioner.cn/v1`
+BaseURL: `https://api.VideoSummary.cn/v1`
 
 API-key: `个人中心-API 令牌页面自行获取。`
 
@@ -156,7 +156,7 @@ API-key: `个人中心-API 令牌页面自行获取。`
 
 本站支持超高并发，软件中线程数直接拉满即可~ 处理速度非常快~
 
-更详细的API配置教程：[中转站配置](https://weifeng2333.github.io/VideoCaptioner/config/llm)
+更详细的API配置教程：[中转站配置](https://weifeng2333.github.io/VideoSummary/config/llm)
 
 ---
 
@@ -202,7 +202,7 @@ Whisper 版本有 WhisperCpp 和 fasterWhisper（推荐） 两种，后者效果
 | ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 术语表     | 专业术语、人名、特定词语的修正对照表 | 机器学习->Machine Learning<br>马斯克->Elon Musk<br>打call -> 应援<br>图灵斑图<br>公交车悖论                                                             |
 | 原字幕文稿 | 视频的原有文稿或相关内容             | 完整的演讲稿、课程讲义等                                                                                                                                |
-| 修正要求   | 内容相关的具体修正要求               | 统一人称代词、规范专业术语等<br>填写**内容相关**的要求即可，[示例参考](https://github.com/WEIFENG2333/VideoCaptioner/issues/59#issuecomment-2495849752) |
+| 修正要求   | 内容相关的具体修正要求               | 统一人称代词、规范专业术语等<br>填写**内容相关**的要求即可，[示例参考](https://github.com/WEIFENG2333/VideoSummary/issues/59#issuecomment-2495849752) |
 
 - 如果需要文稿进行字幕优化辅助，全流程处理时，先填写文稿信息，再进行开始任务处理
 - 注意: 使用上下文参数量不高的小型LLM模型时，建议控制文稿内容在1千字内，如果使用上下文较大的模型，则可以适当增加文稿内容。
@@ -217,7 +217,7 @@ Whisper 版本有 WhisperCpp 和 fasterWhisper（推荐） 两种，后者效果
 2. 只能下载较低分辨率的视频；
 3. 网络条件较差时需要验证；
 
-- 请参考 [Cookie 配置说明](https://weifeng2333.github.io/VideoCaptioner/guide/cookies-config) 获取Cookie信息，并将cookies.txt文件放置到软件安装目录的 `AppData` 目录下，即可正常下载高质量视频。
+- 请参考 [Cookie 配置说明](https://weifeng2333.github.io/VideoSummary/guide/cookies-config) 获取Cookie信息，并将cookies.txt文件放置到软件安装目录的 `AppData` 目录下，即可正常下载高质量视频。
 
 ## 软件流程介绍
 
@@ -285,7 +285,7 @@ Whisper 版本有 WhisperCpp 和 fasterWhisper（推荐） 两种，后者效果
 项目主要目录结构说明如下：
 
 ```
-VideoCaptioner/
+VideoSummary/
 ├── app/                        # 应用源代码目录
 │   ├── common/                 # 公共模块（配置、信号总线）
 │   ├── components/             # UI 组件
@@ -321,7 +321,7 @@ VideoCaptioner/
 
 ## 🤝 贡献指南
 
-项目在不断完善中，如果在使用过程遇到的Bug，欢迎提交 [Issue](https://github.com/WEIFENG2333/VideoCaptioner/issues) 和 Pull Request 帮助改进项目。
+项目在不断完善中，如果在使用过程遇到的Bug，欢迎提交 [Issue](https://github.com/WEIFENG2333/VideoSummary/issues) 和 Pull Request 帮助改进项目。
 
 ## 📝 更新日志
 
@@ -341,4 +341,4 @@ VideoCaptioner/
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=WEIFENG2333/VideoCaptioner&type=Date)](https://star-history.com/#WEIFENG2333/VideoCaptioner&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=WEIFENG2333/VideoSummary&type=Date)](https://star-history.com/#WEIFENG2333/VideoSummary&Date)

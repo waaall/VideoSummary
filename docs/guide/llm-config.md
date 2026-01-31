@@ -4,7 +4,7 @@
 
 ## 为什么需要配置 LLM？
 
-VideoCaptioner 使用 LLM 提供以下核心功能：
+VideoSummary 使用 LLM 提供以下核心功能：
 
 - **智能断句** - 根据语义自动分割字幕，而不是简单按时长切割
 - **字幕优化** - 纠正语音识别的错误，统一专业术语
@@ -37,7 +37,7 @@ VideoCaptioner 使用 LLM 提供以下核心功能：
 
 #### 2. 在软件中配置
 
-打开 VideoCaptioner，进入 **设置 → LLM 服务配置**
+打开 VideoSummary，进入 **设置 → LLM 服务配置**
 
 填写以下信息：
 
@@ -74,21 +74,21 @@ SiliconCloud 对并发请求有限制，建议将 **线程数** 设置为 **5 �
 
 #### 1. 注册账号
 
-访问 [本项目的中转站](https://api.videocaptioner.cn/register?aff=UrLB)，通过此链接注册默认赠送 **$0.4** 测试余额。
+访问 [本项目的中转站](https://api.VideoSummary.cn/register?aff=UrLB)，通过此链接注册默认赠送 **$0.4** 测试余额。
 
 #### 2. 获取 API Key
 
-登录后访问 [https://api.videocaptioner.cn/token](https://api.videocaptioner.cn/token) 获取你的 API Key
+登录后访问 [https://api.VideoSummary.cn/token](https://api.VideoSummary.cn/token) 获取你的 API Key
 
 #### 3. 在软件中配置
 
-打开 VideoCaptioner，进入 **设置 → LLM 服务配置**
+打开 VideoSummary，进入 **设置 → LLM 服务配置**
 
 填写以下信息：
 
 | 配置项           | 值                                 |
 | ---------------- | ---------------------------------- |
-| **API 接口地址** | `https://api.videocaptioner.cn/v1` |
+| **API 接口地址** | `https://api.VideoSummary.cn/v1` |
 | **API Key**      | 粘贴你获取的密钥                   |
 | **模型**         | 见下方推荐                         |
 

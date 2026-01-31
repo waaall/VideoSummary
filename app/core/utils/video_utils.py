@@ -51,7 +51,7 @@ def temporary_subtitle_file(subtitle_path: str):
     """
     suffix = Path(subtitle_path).suffix.lower()
     temp_fd, temp_path = tempfile.mkstemp(
-        suffix=suffix, prefix="VideoCaptioner_subtitle_"
+        suffix=suffix, prefix="VideoSummary_subtitle_"
     )
     os.close(temp_fd)
 

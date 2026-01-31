@@ -1,6 +1,6 @@
 # 测试套件
 
-VideoCaptioner 翻译模块的集成测试。
+VideoSummary 翻译模块的集成测试。
 
 ## 📁 测试文件
 

@@ -164,7 +164,7 @@ class JianYingASR(BaseASR):
             "tdid": self.tdid,
         }
         headers = {
-            "User-Agent": f"VideoCaptioner/{VERSION}",
+            "User-Agent": f"VideoSummary/{VERSION}",
             "tdid": self.tdid,
             "t": current_time,
         }

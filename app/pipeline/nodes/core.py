@@ -35,9 +35,18 @@ class InputNode(PipelineNode):
         if ctx.source_type == "url" and not ctx.source_url:
             raise ValueError("source_type 为 url 时必须提供 source_url")
 
-        # local 类型需要 video_path
-        if ctx.source_type == "local" and not ctx.video_path:
-            raise ValueError("source_type 为 local 时必须提供 video_path")
+        # local 类型需要至少一种输入路径
+        if ctx.source_type == "local":
+            if ctx.subtitle_path:
+                ctx.set("local_input_type", "subtitle")
+            elif ctx.audio_path:
+                ctx.set("local_input_type", "audio")
+            elif ctx.video_path:
+                ctx.set("local_input_type", "video")
+            else:
+                raise ValueError(
+                    "source_type 为 local 时必须提供 subtitle_path/audio_path/video_path 之一"
+                )
 
         logger.info(f"输入验证通过: source_type={ctx.source_type}")
 
@@ -52,7 +61,7 @@ class FetchMetadataNode(PipelineNode):
 
     def run(self, ctx: PipelineContext) -> None:
         # 确定视频路径
-        video_path = ctx.video_path
+        video_path = ctx.video_path or ctx.audio_path
 
         if ctx.source_type == "url" and not video_path:
             # URL 模式下，使用 yt-dlp 获取元数据（不下载）
@@ -393,6 +402,8 @@ class DetectSilenceNode(PipelineNode):
         rms_max = ctx.thresholds.audio_rms_max_for_silence
 
         transcript_token_count = ctx.transcript_token_count or 0
+        # TODO: 隐患 - 本地音频流程中，若 FetchMetadataNode 获取时长失败，video_duration 为 0
+        #       会导致 tokens_per_minute=0，误判为静音。修复方案：从 asr_data.segments[-1].end 推断时长
         video_duration = ctx.video_duration or 0
 
         # 方法1：基于转录 token 数/时长判断
@@ -463,6 +474,18 @@ class TranscribeNode(PipelineNode):
 
 
 # ============ 总结节点 ============
+
+class WarningNode(PipelineNode):
+    """警告节点 - 输出固定提示信息"""
+
+    def run(self, ctx: PipelineContext) -> None:
+        message = self.params.get("message", "无有效信息")
+        ctx.set("summary_text", message)
+        logger.warning(f"WarningNode: {message}")
+
+    def get_output_keys(self) -> List[str]:
+        return ["summary_text"]
+
 
 class TextSummarizeNode(PipelineNode):
     """文本总结节点 - 使用 LLM 生成摘要"""

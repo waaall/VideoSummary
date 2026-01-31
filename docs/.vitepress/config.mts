@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'VideoCaptioner',
+  title: 'VideoSummary',
   description: '基于大语言模型(LLM)的视频字幕处理助手，支持语音识别、字幕断句、优化、翻译全流程处理',
-  titleTemplate: ':title - VideoCaptioner',
+  titleTemplate: ':title - VideoSummary',
 
   lastUpdated: true,
   cleanUrls: true,
@@ -72,20 +72,20 @@ export default defineConfig({
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:locale', content: 'zh_CN' }],
     ['meta', { property: 'og:locale:alternate', content: 'en_US' }],
-    ['meta', { property: 'og:title', content: 'VideoCaptioner - 基于LLM的智能视频字幕处理工具' }],
+    ['meta', { property: 'og:title', content: 'VideoSummary - 基于LLM的智能视频字幕处理工具' }],
     ['meta', { property: 'og:description', content: '免费开源的AI视频字幕处理助手。支持Whisper语音识别、LLM智能断句与翻译、多语言字幕生成。适用于YouTube、B站等平台，支持99种语言。' }],
-    ['meta', { property: 'og:site_name', content: 'VideoCaptioner' }],
+    ['meta', { property: 'og:site_name', content: 'VideoSummary' }],
     ['meta', { property: 'og:url', content: 'https://weifeng2333.github.io/VideoCaptioner/' }],
     ['meta', { property: 'og:image', content: 'https://weifeng2333.github.io/VideoCaptioner/logo.png' }],
     ['meta', { property: 'og:image:width', content: '1200' }],
     ['meta', { property: 'og:image:height', content: '630' }],
-    ['meta', { property: 'og:image:alt', content: 'VideoCaptioner Logo' }],
+    ['meta', { property: 'og:image:alt', content: 'VideoSummary Logo' }],
 
     // Twitter Card（英文为主，面向国际用户）
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:site', content: '@VideoCaptioner' }],
+    ['meta', { name: 'twitter:site', content: '@VideoSummary' }],
     ['meta', { name: 'twitter:creator', content: '@WEIFENG' }],
-    ['meta', { name: 'twitter:title', content: 'VideoCaptioner - AI-Powered Video Subtitle Tool' }],
+    ['meta', { name: 'twitter:title', content: 'VideoSummary - AI-Powered Video Subtitle Tool' }],
     ['meta', { name: 'twitter:description', content: 'Free & open-source AI subtitle tool powered by Whisper & LLM. Supports 99 languages with intelligent segmentation and translation.' }],
     ['meta', { name: 'twitter:image', content: 'https://weifeng2333.github.io/VideoCaptioner/logo.png' }],
     ['meta', { name: 'twitter:image:alt', content: 'VideoCaptioner - AI Video Subtitle Tool' }],
@@ -103,7 +103,7 @@ export default defineConfig({
         {
           '@type': 'SoftwareApplication',
           '@id': 'https://weifeng2333.github.io/VideoCaptioner/#software',
-          name: 'VideoCaptioner',
+          name: 'VideoSummary',
           alternateName: ['卡卡字幕助手', 'Video Captioner', 'AI Subtitle Tool'],
           description: '基于大语言模型和Whisper的智能视频字幕处理工具，支持语音识别、智能断句、字幕优化和多语言翻译',
           applicationCategory: 'MultimediaApplication',
@@ -145,8 +145,8 @@ export default defineConfig({
           '@type': 'WebSite',
           '@id': 'https://weifeng2333.github.io/VideoCaptioner/#website',
           url: 'https://weifeng2333.github.io/VideoCaptioner/',
-          name: 'VideoCaptioner Documentation',
-          description: 'VideoCaptioner 官方文档 - 视频字幕处理工具使用指南',
+          name: 'VideoSummary Documentation',
+          description: 'VideoSummary 官方文档 - 视频字幕处理工具使用指南',
           publisher: {
             '@id': 'https://weifeng2333.github.io/VideoCaptioner/#organization'
           },
@@ -160,7 +160,7 @@ export default defineConfig({
         {
           '@type': 'Organization',
           '@id': 'https://weifeng2333.github.io/VideoCaptioner/#organization',
-          name: 'VideoCaptioner',
+          name: 'VideoSummary',
           url: 'https://weifeng2333.github.io/VideoCaptioner/',
           logo: {
             '@type': 'ImageObject',

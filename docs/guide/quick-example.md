@@ -1,6 +1,6 @@
 # 快速示例教程
 
-通过一个 TED 演讲视频的完整处理流程，快速了解 VideoCaptioner 的强大功能。
+通过一个 TED 演讲视频的完整处理流程，快速了解 VideoSummary 的强大功能。
 
 :::tip 示例视频信息
 
@@ -153,7 +153,7 @@ Everything gets done and things stay civil.
 
 ## 步骤 3：查看翻译细节
 
-VideoCaptioner 使用**反思翻译**技术，每句字幕都经过两次优化：
+VideoSummary 使用**反思翻译**技术，每句字幕都经过两次优化：
 
 ### 翻译对比示例
 
@@ -297,7 +297,7 @@ VideoCaptioner 使用**反思翻译**技术，每句字幕都经过两次优化�
 
 ## 适用场景
 
-通过这个示例，VideoCaptioner 特别适合：
+通过这个示例，VideoSummary 特别适合：
 
 ### 1. 教育学习
 
@@ -360,4 +360,4 @@ VideoCaptioner 使用**反思翻译**技术，每句字幕都经过两次优化�
 
 ---
 
-需要帮助？欢迎在 [GitHub Issues](https://github.com/WEIFENG2333/VideoCaptioner/issues) 提问！
+需要帮助？欢迎在 [GitHub Issues](https://github.com/WEIFENG2333/VideoSummary/issues) 提问！

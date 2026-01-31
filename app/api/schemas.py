@@ -56,6 +56,21 @@ class PipelineRunRequest(BaseModel):
     options: Dict[str, Any] = Field(default_factory=dict)
 
 
+class AutoPipelineInputs(BaseModel):
+    source_type: Optional[str] = None
+    source_url: Optional[str] = None
+    video_path: Optional[str] = None
+    subtitle_path: Optional[str] = None
+    audio_path: Optional[str] = None
+    extra: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AutoPipelineRunRequest(BaseModel):
+    inputs: AutoPipelineInputs
+    thresholds: Optional[PipelineThresholds] = None
+    options: Dict[str, Any] = Field(default_factory=dict)
+
+
 class TraceEvent(BaseModel):
     node_id: str
     status: str

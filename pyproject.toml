@@ -1,5 +1,5 @@
 [project]
-name = "videocaptioner"
+name = "VideoSummary"
 version = "1.3.3"
 description = "AI-powered video captioning tool based on LLM"
 readme = "README.md"
@@ -46,7 +46,7 @@ Issues = "https://github.com/WEIFENG2333/VideoCaptioner/issues"
 
 [project.scripts]
 # 后端 API 入口
-videocaptioner-api = "app.api.main:run_server"
+VideoSummary-api = "app.api.main:run_server"
 
 [build-system]
 requires = ["hatchling"]

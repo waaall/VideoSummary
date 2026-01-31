@@ -140,7 +140,7 @@ class VersionChecker(QObject):
             self.cache.set(version_key, True)
 
             update_announcement = (
-                f"Welcome to VideoCaptioner {self.current_version}\n\n"
+                f"Welcome to VideoSummary {self.current_version}\n\n"
                 f"What's new:\n{self.update_info}"
             )
             self.announcementAvailable.emit(update_announcement)

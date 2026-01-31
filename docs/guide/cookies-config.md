@@ -4,7 +4,7 @@
 
 ## 为什么需要配置 Cookie？
 
-在使用 VideoCaptioner 下载视频时，你可能会遇到以下错误：
+在使用 VideoSummary 下载视频时，你可能会遇到以下错误：
 
 ![Cookie 错误提示](https://h1.appinn.me/file/1731487405884_cookies_error.png)
 
@@ -15,7 +15,7 @@
 3. **地区限制**的内容需要特定账号权限
 
 :::tip 何时需要配置
-只有当你看到上述错误提示时才需要配置 Cookie。大多数情况下，VideoCaptioner 可以直接下载视频。
+只有当你看到上述错误提示时才需要配置 Cookie。大多数情况下，VideoSummary 可以直接下载视频。
 :::
 
 ---
@@ -60,14 +60,14 @@
 
 ### 3. 放置 Cookie 文件
 
-将导出的 `cookies.txt` 文件移动到 VideoCaptioner 的 **AppData** 目录下。
+将导出的 `cookies.txt` 文件移动到 VideoSummary 的 **AppData** 目录下。
 
 #### AppData 目录位置
 
-VideoCaptioner 的 AppData 目录通常位于：
+VideoSummary 的 AppData 目录通常位于：
 
 ```
-VideoCaptioner/
+VideoSummary/
 ├─ app/
 ├─ resource/
 ├─ AppData/          # Cookie 文件放这里
@@ -80,14 +80,14 @@ VideoCaptioner/
 ```
 
 :::tip 快速定位
-在 VideoCaptioner 中点击 **设置 → 打开日志文件夹**，然后返回上一级目录即可看到 `AppData` 文件夹。
+在 VideoSummary 中点击 **设置 → 打开日志文件夹**，然后返回上一级目录即可看到 `AppData` 文件夹。
 :::
 
 ### 4. 验证配置
 
 配置完成后：
 
-1. 重启 VideoCaptioner
+1. 重启 VideoSummary
 2. 再次尝试下载视频
 3. 如果仍然失败，请检查 Cookie 文件是否正确放置
 
@@ -133,7 +133,7 @@ VideoCaptioner/
 
 ### 支持哪些视频网站？
 
-VideoCaptioner 使用 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 作为下载引擎，支持 1000+ 个视频网站，包括：
+VideoSummary 使用 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 作为下载引擎，支持 1000+ 个视频网站，包括：
 
 - 🎬 YouTube、Bilibili、抖音、快手
 - 📺 爱奇艺、腾讯视频、优酷

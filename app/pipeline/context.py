@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from app.api.schemas import PipelineInputs, PipelineThresholds, TraceEvent
+from app.core.asr.asr_data import ASRData
 
 
 @dataclass
@@ -110,8 +112,29 @@ class PipelineContext:
             "summary_text": self.summary_text,
         }
         # 合并 extra 字段
-        result.update(self.extra)
+        result.update(self._serialize_value(self.extra))
         return result
+
+    def _serialize_value(self, value: Any) -> Any:
+        """将上下文值序列化为可 JSON 输出的结构"""
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, ASRData):
+            return value.to_json()
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, dict):
+            return {k: self._serialize_value(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [self._serialize_value(v) for v in value]
+        if is_dataclass(value):
+            return self._serialize_value(asdict(value))
+        if hasattr(value, "model_dump"):
+            try:
+                return value.model_dump()
+            except Exception:
+                pass
+        return str(value)
 
     def to_eval_namespace(self) -> Dict[str, Any]:
         """导出用于条件表达式评估的命名空间"""

@@ -1,12 +1,12 @@
-# VideoCaptioner 文档
+# VideoSummary 文档
 
-这是 VideoCaptioner 项目的文档源文件，使用 [VitePress](https://vitepress.dev/) 构建。
+这是 VideoSummary 项目的文档源文件，使用 [VitePress](https://vitepress.dev/) 构建。
 
 ## 📚 在线查看
 
 文档已自动部署到 GitHub Pages：
 
-**[https://weifeng2333.github.io/VideoCaptioner/](https://weifeng2333.github.io/VideoCaptioner/)**
+**[https://weifeng2333.github.io/VideoSummary/](https://weifeng2333.github.io/VideoSummary/)**
 
 ## 🚀 本地开发
 
@@ -73,7 +73,7 @@ docs/
 
 ```markdown
 ---
-title: 页面标题 - VideoCaptioner
+title: 页面标题 - VideoSummary
 description: 页面描述，包含关键词
 head:
   - - meta
@@ -153,7 +153,7 @@ head:
 1. **Google Search Console**
    - 访问 https://search.google.com/search-console
    - 添加网站并验证
-   - 提交 sitemap: `https://weifeng2333.github.io/VideoCaptioner/sitemap.xml`
+   - 提交 sitemap: `https://weifeng2333.github.io/VideoSummary/sitemap.xml`
 
 2. **Bing Webmaster Tools**
    - 访问 https://www.bing.com/webmasters

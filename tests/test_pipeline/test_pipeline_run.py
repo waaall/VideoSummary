@@ -300,7 +300,7 @@ class TestURLSubtitlePriorityFlow:
         # 提供有效字幕文件
         inputs = PipelineInputs(
             source_type="url",
-            source_url="https://example.com/video.mp4",
+            source_url="https://www.bilibili.com/video/BV1iApwzBEqZ/",
             subtitle_path=sample_subtitle_path,
         )
         thresholds = PipelineThresholds(subtitle_coverage_min=0.5)  # 降低阈值便于测试

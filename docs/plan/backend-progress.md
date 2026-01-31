@@ -24,7 +24,7 @@
 - [x] 移除 Qt 平台特定配置（`tool.uv.environments`、`override-dependencies`）
 - [x] 移除 Qt classifiers（`Environment :: X11 Applications :: Qt`）
 - [x] 新增后端依赖：`fastapi>=0.110`、`uvicorn>=0.23`、`python-multipart>=0.0.9`、`pyyaml>=6.0`
-- [x] 更新 CLI 入口：`videocaptioner-api = "app.api.main:run_server"`
+- [x] 更新 CLI 入口：`VideoSummary-api = "app.api.main:run_server"`
 
 #### 2. 保留/确认 FastAPI 入口
 - [x] `app/api/main.py`：健康检查端点 `GET /health` 正常

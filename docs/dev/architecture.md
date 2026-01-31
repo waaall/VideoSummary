@@ -1,6 +1,6 @@
 # 架构设计
 
-VideoCaptioner 的系统架构设计。
+VideoSummary 的系统架构设计。
 
 ## 技术栈
 

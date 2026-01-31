@@ -1,4 +1,4 @@
-# VideoCaptioner
+# VideoSummary
 
 AI-powered video captioning and summarization backend engine.
 

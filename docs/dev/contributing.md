@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你对 VideoCaptioner 的贡献！
+感谢你对 VideoSummary 的贡献！
 
 ## 开发环境设置
 

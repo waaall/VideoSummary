@@ -67,7 +67,7 @@ def sample_asr_data():
         ASRDataSeg(
             start_time=2000,
             end_time=3000,
-            text="VideoCaptioner is a tool for captioning videos",
+            text="VideoSummary is a tool for captioning videos",
         ),
     ]
     return ASRData(segments)
@@ -85,7 +85,7 @@ def sample_translate_data():
         ),
         SubtitleProcessData(
             index=3,
-            original_text="VideoCaptioner is a tool for captioning videos",
+            original_text="VideoSummary is a tool for captioning videos",
             translated_text="",
         ),
     ]
@@ -151,7 +151,7 @@ def expected_translations() -> Dict[str, Dict[str, List[str]]]:
         "简体中文": {
             "I am a student": ["学生"],
             "You are a teacher": ["老师", "教师"],
-            "VideoCaptioner is a tool for captioning videos": ["工具"],
+            "VideoSummary is a tool for captioning videos": ["工具"],
             "Hello world": ["你好", "世界"],
             "This is a test": ["测试"],
             "Machine learning": ["机器学习"],
@@ -159,8 +159,8 @@ def expected_translations() -> Dict[str, Dict[str, List[str]]]:
         "日本語": {
             "I am a student": ["学生"],
             "You are a teacher": ["先生", "教師"],
-            "VideoCaptioner is a tool for captioning videos": [
-                "VideoCaptioner",
+            "VideoSummary is a tool for captioning videos": [
+                "VideoSummary",
                 "ツール",
                 "字幕",
             ],
