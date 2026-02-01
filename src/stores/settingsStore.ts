@@ -8,23 +8,10 @@ import type { ThemeMode } from '@/config/theme';
 import {
   apiConfig,
   defaultThresholds,
-  defaultLLMConfig,
+  defaultSummaryOptions,
   defaultTranscribeConfig,
 } from '@/config';
-
-// LLM 配置类型
-interface LLMConfig {
-  model: string;
-  maxTokens: number;
-  prompt?: string;
-}
-
-// 转录配置类型
-interface TranscribeConfig {
-  model: string;
-  language: string;
-  needWordTimeStamp: boolean;
-}
+import type { SummaryOptions, TranscribeConfig } from '@/types/api';
 
 // 阈值配置类型
 interface Thresholds {
@@ -43,8 +30,8 @@ interface SettingsState {
   // 阈值配置
   thresholds: Thresholds;
 
-  // LLM 配置
-  llmConfig: LLMConfig;
+  // 摘要配置
+  summaryOptions: SummaryOptions;
 
   // 转录配置
   transcribeConfig: TranscribeConfig;
@@ -53,7 +40,7 @@ interface SettingsState {
   setThemeMode: (mode: ThemeMode) => void;
   setApiBaseUrl: (url: string) => void;
   updateThresholds: (thresholds: Partial<Thresholds>) => void;
-  updateLLMConfig: (config: Partial<LLMConfig>) => void;
+  updateSummaryOptions: (config: Partial<SummaryOptions>) => void;
   updateTranscribeConfig: (config: Partial<TranscribeConfig>) => void;
   resetToDefaults: () => void;
 }
@@ -67,15 +54,15 @@ const defaultState = {
     transcriptTokenPerMinMin: defaultThresholds.transcriptTokenPerMinMin,
     audioRmsMaxForSilence: defaultThresholds.audioRmsMaxForSilence,
   },
-  llmConfig: {
-    model: defaultLLMConfig.model,
-    maxTokens: defaultLLMConfig.maxTokens,
-    prompt: defaultLLMConfig.prompt,
+  summaryOptions: {
+    model: defaultSummaryOptions.model,
+    max_tokens: defaultSummaryOptions.max_tokens,
+    prompt: defaultSummaryOptions.prompt,
   },
   transcribeConfig: {
-    model: defaultTranscribeConfig.model,
-    language: defaultTranscribeConfig.language,
-    needWordTimeStamp: defaultTranscribeConfig.needWordTimeStamp,
+    transcribe_model: defaultTranscribeConfig.transcribe_model,
+    transcribe_language: defaultTranscribeConfig.transcribe_language,
+    need_word_time_stamp: defaultTranscribeConfig.need_word_time_stamp,
   },
 };
 
@@ -97,9 +84,9 @@ export const useSettingsStore = create<SettingsState>()(
           thresholds: { ...state.thresholds, ...thresholds },
         })),
 
-      updateLLMConfig: (config) =>
+      updateSummaryOptions: (config) =>
         set((state) => ({
-          llmConfig: { ...state.llmConfig, ...config },
+          summaryOptions: { ...state.summaryOptions, ...config },
         })),
 
       updateTranscribeConfig: (config) =>
@@ -116,7 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
         themeMode: state.themeMode,
         apiBaseUrl: state.apiBaseUrl,
         thresholds: state.thresholds,
-        llmConfig: state.llmConfig,
+        summaryOptions: state.summaryOptions,
         transcribeConfig: state.transcribeConfig,
       }),
     }

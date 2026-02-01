@@ -45,13 +45,32 @@ export interface PipelineConfig {
 export interface PipelineInputs {
   source_type: 'url' | 'local';
   source_url?: string;
-  // 前端使用 file_id，path 仅用于后端内部
   video_path?: string;
-  video_file_id?: string;
   subtitle_path?: string;
-  subtitle_file_id?: string;
   audio_path?: string;
+  extra?: Record<string, unknown>;
+}
+
+// URL 自动流程输入
+export interface AutoPipelineInputs {
+  source_type?: 'url';
+  source_url: string;
+  video_path?: string;
+  subtitle_path?: string;
+  audio_path?: string;
+  extra?: Record<string, unknown>;
+}
+
+// 本地自动流程输入
+export interface LocalPipelineInputs {
+  // file_id 方式（推荐）
+  video_file_id?: string;
   audio_file_id?: string;
+  subtitle_file_id?: string;
+  // path 方式（服务端本地路径，调试用）
+  video_path?: string;
+  audio_path?: string;
+  subtitle_path?: string;
   extra?: Record<string, unknown>;
 }
 
@@ -66,27 +85,40 @@ export interface PipelineThresholds {
 export interface TraceEvent {
   node_id: string;
   status: 'started' | 'completed' | 'failed' | 'skipped';
-  elapsed_ms: number;
+  elapsed_ms?: number;
   error?: string;
   output_keys?: string[];
+  started_at?: number;
+  ended_at?: number;
+  retryable?: boolean;
 }
 
 // 执行状态
-export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'failed';
+export type ExecutionStatus = 'idle' | 'queued' | 'running' | 'completed' | 'failed';
+
+// 创建响应（HTTP 202）
+export interface PipelineRunCreateResponse {
+  run_id: string;
+  status: 'queued';
+  queued_at?: number;
+}
 
 // 管线运行响应
 export interface PipelineRunResponse {
   run_id: string;
-  status: 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'failed';
   summary_text?: string;
   context: Record<string, unknown>;
   trace: TraceEvent[];
+  created_at?: number;
+  updated_at?: number;
+  started_at?: number;
+  ended_at?: number;
+  error?: string | null;
 }
 
 // 运行状态响应（带更新时间）
-export interface PipelineRunStatusResponse extends PipelineRunResponse {
-  updated_at?: string;
-}
+export type PipelineRunStatusResponse = PipelineRunResponse;
 
 // 上传响应
 export interface UploadResponse {
@@ -94,6 +126,7 @@ export interface UploadResponse {
   original_name: string;
   size: number;
   mime_type: string;
+  file_type: 'video' | 'audio' | 'subtitle';
 }
 
 // 健康检查响应

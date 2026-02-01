@@ -29,6 +29,7 @@ interface ResultDisplayProps {
 
 // 状态图标
 const statusIcons: Record<string, React.ReactNode> = {
+  queued: <LoadingOutlined spin />,
   running: <LoadingOutlined spin />,
   completed: <CheckCircleOutlined />,
   failed: <CloseCircleOutlined />,
@@ -36,6 +37,7 @@ const statusIcons: Record<string, React.ReactNode> = {
 
 // 状态颜色
 const statusColors: Record<string, string> = {
+  queued: 'processing',
   running: 'processing',
   completed: 'success',
   failed: 'error',
@@ -113,7 +115,13 @@ export function ResultDisplay({
             color={statusColors[status]}
             className={styles.statusTag}
           >
-            {status === 'running' ? '执行中' : status === 'completed' ? '已完成' : '执行失败'}
+            {status === 'queued'
+              ? '排队中'
+              : status === 'running'
+                ? '执行中'
+                : status === 'completed'
+                  ? '已完成'
+                  : '执行失败'}
           </Tag>
 
           {runId && (
@@ -138,16 +146,20 @@ export function ResultDisplay({
               </span>
               <span className={styles.traceName}>{getNodeTypeName(event.node_id)}</span>
               <span className={styles.traceStatus}>{getStatusName(event.status)}</span>
-              <span className={styles.traceTime}>{formatDuration(event.elapsed_ms)}</span>
+              <span className={styles.traceTime}>
+                {formatDuration(event.elapsed_ms ?? 0)}
+              </span>
             </div>
           ))}
 
-          {status === 'running' && (
+          {(status === 'queued' || status === 'running') && (
             <div className={`${styles.traceItem} ${styles.pending}`}>
               <span className={styles.traceIcon}>
                 <LoadingOutlined spin />
               </span>
-              <span className={styles.traceName}>处理中...</span>
+              <span className={styles.traceName}>
+                {status === 'queued' ? '等待调度...' : '处理中...'}
+              </span>
             </div>
           )}
         </div>
@@ -207,12 +219,12 @@ export function ResultDisplay({
         <Button
           icon={<ReloadOutlined />}
           onClick={onReset}
-          disabled={status === 'running'}
+          disabled={status === 'running' || status === 'queued'}
         >
           重新开始
         </Button>
 
-        {runId && status !== 'running' && (
+        {runId && status !== 'running' && status !== 'queued' && (
           <Button type="primary" onClick={handleViewTrace}>
             查看详细执行记录
           </Button>

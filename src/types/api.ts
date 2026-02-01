@@ -2,12 +2,18 @@
  * API 请求/响应类型定义
  */
 
-import type { PipelineConfig, PipelineInputs, PipelineThresholds } from './pipeline';
+import type {
+  PipelineConfig,
+  PipelineInputs,
+  PipelineThresholds,
+  AutoPipelineInputs,
+  LocalPipelineInputs,
+} from './pipeline';
 
 // LLM 摘要选项
 export interface SummaryOptions {
-  model?: string;
-  max_tokens?: number;
+  model: string;
+  max_tokens: number;
   prompt?: string;
 }
 
@@ -28,25 +34,19 @@ export interface PipelineOptions {
   audio_track_index?: number;
   summary?: SummaryOptions;
   transcribe_config?: TranscribeConfig;
+  [key: string]: unknown;
 }
 
 // URL 自动流程请求
-export interface AutoUrlRequest {
-  inputs: {
-    source_url: string;
-  };
+export interface AutoPipelineRunRequest {
+  inputs: AutoPipelineInputs;
   options?: PipelineOptions;
   thresholds?: Partial<PipelineThresholds>;
 }
 
 // 本地自动流程请求
-export interface AutoLocalRequest {
-  inputs: {
-    source_type: 'local';
-    subtitle_file_id?: string;
-    audio_file_id?: string;
-    video_file_id?: string;
-  };
+export interface LocalPipelineRunRequest {
+  inputs: LocalPipelineInputs;
   options?: PipelineOptions;
   thresholds?: Partial<PipelineThresholds>;
 }

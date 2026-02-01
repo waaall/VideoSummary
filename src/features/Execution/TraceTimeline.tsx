@@ -29,11 +29,13 @@ export function TraceTimeline({ trace, totalDuration }: TraceTimelineProps) {
     // 计算累积时间
     let accumulatedTime = 0;
     const items = trace.map((event) => {
+      const elapsedMs = event.elapsed_ms ?? 0;
       const startTime = accumulatedTime;
-      accumulatedTime += event.elapsed_ms;
+      accumulatedTime += elapsedMs;
 
       return {
         ...event,
+        elapsed_ms: elapsedMs,
         startTime,
         endTime: accumulatedTime,
       };
@@ -57,6 +59,8 @@ export function TraceTimeline({ trace, totalDuration }: TraceTimelineProps) {
     );
   }
 
+  const safeMaxTime = maxTime > 0 ? maxTime : 1;
+
   return (
     <div className={styles.container}>
       {/* 时间刻度 */}
@@ -69,8 +73,8 @@ export function TraceTimeline({ trace, totalDuration }: TraceTimelineProps) {
       {/* 时间线 */}
       <div className={styles.timeline}>
         {timelineData.map((item, index) => {
-          const left = (item.startTime / maxTime) * 100;
-          const width = (item.elapsed_ms / maxTime) * 100;
+          const left = (item.startTime / safeMaxTime) * 100;
+          const width = (item.elapsed_ms / safeMaxTime) * 100;
 
           return (
             <Tooltip

@@ -3,13 +3,21 @@
  */
 
 import { create } from 'zustand';
-import type { TraceEvent, ExecutionStatus, PipelineRunResponse } from '@/types/pipeline';
+import type {
+  TraceEvent,
+  ExecutionStatus,
+  PipelineRunResponse,
+} from '@/types/pipeline';
 
 interface ExecutionState {
   // 执行状态
   runId: string | null;
   status: ExecutionStatus;
-  lastUpdatedAt: string | null;
+  queuedAt: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
+  startedAt: number | null;
+  endedAt: number | null;
 
   // 结果
   summaryText: string | null;
@@ -22,9 +30,15 @@ interface ExecutionState {
   completedNodes: string[];
 
   // Actions
-  startExecution: (runId: string) => void;
+  startExecution: (runId: string, status?: ExecutionStatus) => void;
   updateStatus: (status: ExecutionStatus) => void;
-  updateLastUpdatedAt: (ts: string | null) => void;
+  updateRunMeta: (meta: Partial<{
+    queuedAt: number | null;
+    createdAt: number | null;
+    updatedAt: number | null;
+    startedAt: number | null;
+    endedAt: number | null;
+  }>) => void;
   updateTrace: (trace: TraceEvent[]) => void;
   updateContext: (context: Record<string, unknown>) => void;
   setCurrentNode: (nodeId: string | null) => void;
@@ -37,7 +51,11 @@ interface ExecutionState {
 const initialState = {
   runId: null,
   status: 'idle' as ExecutionStatus,
-  lastUpdatedAt: null,
+  queuedAt: null,
+  createdAt: null,
+  updatedAt: null,
+  startedAt: null,
+  endedAt: null,
   summaryText: null,
   context: {},
   trace: [],
@@ -49,10 +67,15 @@ const initialState = {
 export const useExecutionStore = create<ExecutionState>((set) => ({
   ...initialState,
 
-  startExecution: (runId) =>
+  startExecution: (runId, status = 'queued') =>
     set({
       runId,
-      status: 'running',
+      status,
+      queuedAt: null,
+      createdAt: null,
+      updatedAt: null,
+      startedAt: null,
+      endedAt: null,
       error: null,
       summaryText: null,
       context: {},
@@ -63,7 +86,14 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
 
   updateStatus: (status) => set({ status }),
 
-  updateLastUpdatedAt: (ts) => set({ lastUpdatedAt: ts }),
+  updateRunMeta: (meta) =>
+    set((state) => ({
+      queuedAt: meta.queuedAt ?? state.queuedAt,
+      createdAt: meta.createdAt ?? state.createdAt,
+      updatedAt: meta.updatedAt ?? state.updatedAt,
+      startedAt: meta.startedAt ?? state.startedAt,
+      endedAt: meta.endedAt ?? state.endedAt,
+    })),
 
   updateTrace: (trace) => {
     // 从 trace 中推断当前节点和已完成节点
@@ -97,7 +127,11 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
       summaryText: result.summary_text || null,
       context: result.context,
       trace: result.trace,
+      updatedAt: result.updated_at ?? null,
+      startedAt: result.started_at ?? null,
+      endedAt: result.ended_at ?? null,
       currentNodeId: null,
+      error: null,
     }),
 
   failExecution: (error) =>
@@ -121,5 +155,5 @@ export const getNodeStatus = (
 
 // 选择器：计算总耗时
 export const getTotalElapsedMs = (trace: TraceEvent[]): number => {
-  return trace.reduce((total, event) => total + event.elapsed_ms, 0);
+  return trace.reduce((total, event) => total + (event.elapsed_ms ?? 0), 0);
 };

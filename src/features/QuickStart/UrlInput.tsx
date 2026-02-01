@@ -20,7 +20,7 @@ export function UrlInput({ onSubmit, loading = false }: UrlInputProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 从设置中获取默认值
-  const llmConfig = useSettingsStore((state) => state.llmConfig);
+  const summaryOptions = useSettingsStore((state) => state.summaryOptions);
 
   // 高级选项表单
   const [form] = Form.useForm<{
@@ -57,14 +57,13 @@ export function UrlInput({ onSubmit, loading = false }: UrlInputProps) {
     }
 
     // LLM 摘要选项
-    const summaryOptions: SummaryOptions = {};
-    if (formValues.model) summaryOptions.model = formValues.model;
-    if (formValues.maxTokens) summaryOptions.max_tokens = formValues.maxTokens;
-    if (formValues.prompt) summaryOptions.prompt = formValues.prompt;
+    const summary: SummaryOptions = {
+      model: formValues.model || summaryOptions.model,
+      max_tokens: formValues.maxTokens || summaryOptions.max_tokens,
+      prompt: formValues.prompt || undefined,
+    };
 
-    if (Object.keys(summaryOptions).length > 0) {
-      options.summary = summaryOptions;
-    }
+    options.summary = summary;
 
     onSubmit(url, options);
   }, [url, urlStatus.valid, form, onSubmit]);
@@ -85,9 +84,9 @@ export function UrlInput({ onSubmit, loading = false }: UrlInputProps) {
           layout="vertical"
           initialValues={{
             workDir: '/tmp/downloads',
-            model: llmConfig.model,
-            maxTokens: llmConfig.maxTokens,
-            prompt: llmConfig.prompt || '',
+            model: summaryOptions.model,
+            maxTokens: summaryOptions.max_tokens,
+            prompt: summaryOptions.prompt || '',
           }}
           className={styles.advancedForm}
         >

@@ -11,6 +11,7 @@ import { LocalUpload } from './LocalUpload';
 import { ResultDisplay } from './ResultDisplay';
 import { runAutoUrl, runAutoLocal } from '@/api/pipeline';
 import { usePipelineExecution } from '@/hooks';
+import { useSettingsStore } from '@/stores';
 import type { PipelineOptions } from '@/types/api';
 import styles from './QuickStartPage.module.css';
 
@@ -19,6 +20,8 @@ type TabKey = 'url' | 'local';
 export function QuickStartPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('url');
   const [submitting, setSubmitting] = useState(false);
+  const thresholds = useSettingsStore((state) => state.thresholds);
+  const transcribeConfig = useSettingsStore((state) => state.transcribeConfig);
 
   const {
     status,
@@ -47,9 +50,21 @@ export function QuickStartPage() {
       reset();
 
       try {
+        const apiThresholds = {
+          subtitle_coverage_min: thresholds.subtitleCoverageMin,
+          transcript_token_per_min_min: thresholds.transcriptTokenPerMinMin,
+          audio_rms_max_for_silence: thresholds.audioRmsMaxForSilence,
+        };
+
+        const mergedOptions: PipelineOptions = {
+          transcribe_config: transcribeConfig,
+          ...options,
+        };
+
         const response = await runAutoUrl({
           inputs: { source_url: url },
-          options,
+          options: mergedOptions,
+          thresholds: apiThresholds,
         });
 
         handleExecutionResponse(response.data);
@@ -59,7 +74,7 @@ export function QuickStartPage() {
         setSubmitting(false);
       }
     },
-    [reset, handleExecutionResponse]
+    [reset, handleExecutionResponse, thresholds, transcribeConfig]
   );
 
   // 处理本地文件提交
@@ -73,10 +88,19 @@ export function QuickStartPage() {
       reset();
 
       try {
+        const apiThresholds = {
+          subtitle_coverage_min: thresholds.subtitleCoverageMin,
+          transcript_token_per_min_min: thresholds.transcriptTokenPerMinMin,
+          audio_rms_max_for_silence: thresholds.audioRmsMaxForSilence,
+        };
+
         const response = await runAutoLocal({
           inputs: {
-            source_type: 'local',
             ...files,
+          },
+          thresholds: apiThresholds,
+          options: {
+            transcribe_config: transcribeConfig,
           },
         });
 
@@ -87,7 +111,7 @@ export function QuickStartPage() {
         setSubmitting(false);
       }
     },
-    [reset, handleExecutionResponse]
+    [reset, handleExecutionResponse, thresholds, transcribeConfig]
   );
 
   // Tab 配置

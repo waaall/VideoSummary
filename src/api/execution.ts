@@ -4,14 +4,14 @@
 
 import apiClient from './client';
 import { apiConfig } from '@/config';
-import type { PipelineRunStatusResponse } from '@/types/pipeline';
+import type { PipelineRunResponse } from '@/types/pipeline';
 
 /**
  * 查询运行状态
  * @param runId 运行 ID
  */
 export const getRunStatus = (runId: string) =>
-  apiClient.get<PipelineRunStatusResponse>(`/pipeline/run/${runId}`);
+  apiClient.get<PipelineRunResponse>(`/pipeline/run/${runId}`);
 
 /**
  * SSE 实时订阅运行事件
@@ -21,14 +21,14 @@ export const getRunStatus = (runId: string) =>
  */
 export const subscribeRunEvents = (
   runId: string,
-  onMessage: (payload: PipelineRunStatusResponse) => void
+  onMessage: (payload: PipelineRunResponse) => void
 ): (() => void) => {
   const url = `${apiConfig.baseUrl}/pipeline/run/${runId}/events`;
   const eventSource = new EventSource(url);
 
   eventSource.onmessage = (event) => {
     try {
-      const data = JSON.parse(event.data) as PipelineRunStatusResponse;
+      const data = JSON.parse(event.data) as PipelineRunResponse;
       onMessage(data);
     } catch (error) {
       console.error('解析 SSE 消息失败:', error);

@@ -35,18 +35,18 @@ export const defaultThresholds = {
   audioRmsMaxForSilence: 0.01,
 };
 
-// LLM 默认配置
-export const defaultLLMConfig = {
+// 摘要默认配置
+export const defaultSummaryOptions = {
   model: 'gpt-3.5-turbo',
-  maxTokens: 500,
+  max_tokens: 500,
   prompt: undefined as string | undefined,
 };
 
 // 转录默认配置
 export const defaultTranscribeConfig = {
-  model: 'faster_whisper',
-  language: 'zh',
-  needWordTimeStamp: true,
+  transcribe_model: 'faster_whisper',
+  transcribe_language: 'zh',
+  need_word_time_stamp: true,
 };
 
 // 应用元信息

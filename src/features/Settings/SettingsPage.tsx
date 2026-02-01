@@ -13,12 +13,12 @@ export function SettingsPage() {
     themeMode,
     apiBaseUrl,
     thresholds,
-    llmConfig,
+    summaryOptions,
     transcribeConfig,
     setThemeMode,
     setApiBaseUrl,
     updateThresholds,
-    updateLLMConfig,
+    updateSummaryOptions,
     updateTranscribeConfig,
     resetToDefaults,
   } = useSettingsStore();
@@ -35,14 +35,14 @@ export function SettingsPage() {
       transcriptTokenPerMinMin: values.transcriptTokenPerMinMin,
       audioRmsMaxForSilence: values.audioRmsMaxForSilence,
     });
-    updateLLMConfig({
+    updateSummaryOptions({
       model: values.llmModel,
-      maxTokens: values.llmMaxTokens,
+      max_tokens: values.llmMaxTokens,
       prompt: values.llmPrompt || undefined,
     });
     updateTranscribeConfig({
-      model: values.transcribeModel,
-      language: values.transcribeLanguage,
+      transcribe_model: values.transcribeModel,
+      transcribe_language: values.transcribeLanguage,
     });
 
     message.success('设置已保存');
@@ -71,11 +71,11 @@ export function SettingsPage() {
           subtitleCoverageMin: thresholds.subtitleCoverageMin,
           transcriptTokenPerMinMin: thresholds.transcriptTokenPerMinMin,
           audioRmsMaxForSilence: thresholds.audioRmsMaxForSilence,
-          llmModel: llmConfig.model,
-          llmMaxTokens: llmConfig.maxTokens,
-          llmPrompt: llmConfig.prompt || '',
-          transcribeModel: transcribeConfig.model,
-          transcribeLanguage: transcribeConfig.language,
+          llmModel: summaryOptions.model,
+          llmMaxTokens: summaryOptions.max_tokens,
+          llmPrompt: summaryOptions.prompt || '',
+          transcribeModel: transcribeConfig.transcribe_model,
+          transcribeLanguage: transcribeConfig.transcribe_language,
         }}
         className={styles.form}
       >

@@ -24,6 +24,7 @@ import styles from './ExecutionPage.module.css';
 // 状态图标
 const statusIcons: Record<string, React.ReactNode> = {
   idle: null,
+  queued: <LoadingOutlined spin />,
   running: <LoadingOutlined spin />,
   completed: <CheckCircleOutlined />,
   failed: <CloseCircleOutlined />,
@@ -32,6 +33,7 @@ const statusIcons: Record<string, React.ReactNode> = {
 // 状态颜色
 const statusColors: Record<string, string> = {
   idle: 'default',
+  queued: 'processing',
   running: 'processing',
   completed: 'success',
   failed: 'error',
@@ -40,6 +42,7 @@ const statusColors: Record<string, string> = {
 // 状态文本
 const statusTexts: Record<string, string> = {
   idle: '空闲',
+  queued: '排队中',
   running: '执行中',
   completed: '已完成',
   failed: '执行失败',
@@ -60,7 +63,7 @@ export function ExecutionPage() {
     updateStatus,
     updateTrace,
     updateContext,
-    updateLastUpdatedAt,
+    updateRunMeta,
     completeExecution,
     failExecution,
   } = useExecutionStore();
@@ -75,19 +78,24 @@ export function ExecutionPage() {
 
       // 初始化状态
       if (!runId || runId !== paramRunId) {
-        startExecution(paramRunId);
+        startExecution(paramRunId, data.status);
       }
 
       updateTrace(data.trace);
       updateContext(data.context);
-      updateLastUpdatedAt(data.updated_at || null);
+      updateRunMeta({
+        createdAt: data.created_at ?? null,
+        updatedAt: data.updated_at ?? null,
+        startedAt: data.started_at ?? null,
+        endedAt: data.ended_at ?? null,
+      });
 
       if (data.status === 'completed') {
         completeExecution(data);
       } else if (data.status === 'failed') {
-        failExecution((data.context.error as string) || '执行失败');
+        failExecution(data.error || '执行失败');
       } else {
-        updateStatus('running');
+        updateStatus(data.status);
       }
 
       return data;
@@ -102,7 +110,7 @@ export function ExecutionPage() {
     updateStatus,
     updateTrace,
     updateContext,
-    updateLastUpdatedAt,
+    updateRunMeta,
     completeExecution,
     failExecution,
   ]);
@@ -111,7 +119,7 @@ export function ExecutionPage() {
   const { start: startPolling, stop: stopPolling } = usePolling({
     fetcher: loadStatus,
     onData: () => {},
-    shouldStop: (data) => data?.status !== 'running',
+    shouldStop: (data) => data?.status === 'completed' || data?.status === 'failed',
     enabled: false,
   });
 
@@ -119,7 +127,7 @@ export function ExecutionPage() {
   useEffect(() => {
     if (paramRunId) {
       loadStatus().then((data) => {
-        if (data?.status === 'running') {
+        if (data?.status === 'running' || data?.status === 'queued') {
           startPolling();
         }
       });
@@ -213,7 +221,7 @@ export function ExecutionPage() {
         <Button
           icon={<ReloadOutlined />}
           onClick={handleRefresh}
-          disabled={status === 'running'}
+          disabled={status === 'running' || status === 'queued'}
         >
           刷新
         </Button>
