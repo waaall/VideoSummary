@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import mimetypes
 import re
 import threading
@@ -59,6 +60,7 @@ class UploadedFile:
     mime_type: str
     file_type: str  # "video" | "audio" | "subtitle"
     stored_path: Path
+    file_hash: Optional[str] = None
     created_at: float = field(default_factory=time.time)
     ttl_seconds: int = DEFAULT_TTL_SECONDS
 
@@ -74,6 +76,7 @@ class UploadedFile:
             "size": self.size,
             "mime_type": self.mime_type,
             "file_type": self.file_type,
+            "file_hash": self.file_hash,
         }
         if include_stored_path:
             result["stored_path"] = str(self.stored_path)
@@ -186,6 +189,7 @@ class FileStorage:
                 mime_type=record.get("mime_type", "application/octet-stream"),
                 file_type=record["file_type"],
                 stored_path=stored_path,
+                file_hash=record.get("file_hash"),
                 created_at=created_at,
                 ttl_seconds=ttl_seconds,
             )
@@ -297,6 +301,8 @@ class FileStorage:
         # 写入文件
         stored_path.write_bytes(content)
 
+        file_hash = hashlib.sha256(content).hexdigest()
+
         # 创建元数据记录
         uploaded_file = UploadedFile(
             file_id=file_id,
@@ -305,6 +311,7 @@ class FileStorage:
             mime_type=mime_type,
             file_type=file_type,
             stored_path=stored_path,
+            file_hash=file_hash,
             ttl_seconds=self.ttl_seconds,
         )
 
@@ -319,6 +326,7 @@ class FileStorage:
                 "mime_type": mime_type,
                 "file_type": file_type,
                 "stored_path": str(stored_path),
+                "file_hash": file_hash,
                 "created_at": uploaded_file.created_at,
                 "ttl_seconds": uploaded_file.ttl_seconds,
             }
@@ -348,6 +356,7 @@ class FileStorage:
         stored_path = file_dir / safe_name
 
         size = 0
+        hasher = hashlib.sha256()
         max_bytes = self.max_file_size_bytes
         try:
             with open(stored_path, "wb") as f:
@@ -361,6 +370,7 @@ class FileStorage:
                     if not chunk:
                         break
                     size += len(chunk)
+                    hasher.update(chunk)
                     if size > max_bytes:
                         raise FileSizeError(
                             f"文件大小 {size / 1024 / 1024:.1f}MB 超过限制 "
@@ -386,6 +396,8 @@ class FileStorage:
                 pass
             raise
 
+        file_hash = hasher.hexdigest()
+
         uploaded_file = UploadedFile(
             file_id=file_id,
             original_name=original_name,
@@ -393,6 +405,7 @@ class FileStorage:
             mime_type=mime_type,
             file_type=file_type,
             stored_path=stored_path,
+            file_hash=file_hash,
             ttl_seconds=self.ttl_seconds,
         )
 
@@ -406,6 +419,7 @@ class FileStorage:
                 "mime_type": mime_type,
                 "file_type": file_type,
                 "stored_path": str(stored_path),
+                "file_hash": file_hash,
                 "created_at": uploaded_file.created_at,
                 "ttl_seconds": uploaded_file.ttl_seconds,
             }
@@ -439,6 +453,7 @@ class FileStorage:
                 mime_type=record.get("mime_type", "application/octet-stream"),
                 file_type=record["file_type"],
                 stored_path=Path(record["stored_path"]),
+                file_hash=record.get("file_hash"),
                 created_at=float(record.get("created_at", time.time())),
                 ttl_seconds=int(record.get("ttl_seconds", self.ttl_seconds)),
             )

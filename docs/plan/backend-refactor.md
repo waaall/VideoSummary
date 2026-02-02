@@ -434,7 +434,7 @@ GET /pipeline/run/{run_id}/events
 
 1. **新增后端入口**
    - 入口：`app/api/main.py`
-   - 运行方式：`uvicorn app.api.main:app --host 0.0.0.0 --port 8000`
+   - 运行方式：`uvicorn app.api.main:app --host 0.0.0.0 --port 8765`
 
 2. **移除 Qt/UI 目录**
    - 删除 `app/view/`、`app/components/`、`app/thread/`

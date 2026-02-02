@@ -95,7 +95,7 @@ class TranscribeConfig:
 class WhisperConfig:
     """Whisper Cpp 配置"""
 
-    model: WhisperModelEnum = WhisperModelEnum.TINY
+    model: WhisperModelEnum = WhisperModelEnum.LARGE_V3_TURBO
 
 
 @dataclass

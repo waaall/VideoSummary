@@ -2,6 +2,7 @@
 
 import os
 import threading
+import time
 from typing import Any, List, Optional
 from urllib.parse import urlparse, urlunparse
 
@@ -24,6 +25,15 @@ _global_client: Optional[OpenAI] = None
 _client_lock = threading.Lock()
 
 logger = setup_logger("llm_client")
+
+
+def _estimate_prompt_chars(messages: List[dict]) -> int:
+    total = 0
+    for msg in messages:
+        content = msg.get("content")
+        if isinstance(content, str):
+            total += len(content)
+    return total
 
 
 def normalize_base_url(base_url: str) -> str:
@@ -70,6 +80,7 @@ def get_llm_client() -> OpenAI:
                     api_key=api_key,
                     http_client=create_logging_http_client(),
                 )
+                logger.info("LLM client initialized: base_url=%s", base_url)
 
     return _global_client
 
@@ -94,16 +105,38 @@ def _call_llm_api(
 ) -> Any:
     """实际调用 LLM API（带重试）"""
     client = get_llm_client()
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,  # pyright: ignore[reportArgumentType]
-        temperature=temperature,
-        **kwargs,
+    prompt_chars = _estimate_prompt_chars(messages)
+    start = time.time()
+    logger.info(
+        "LLM request start: model=%s, messages=%d, prompt_chars=%d, temperature=%s",
+        model,
+        len(messages),
+        prompt_chars,
+        temperature,
     )
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,  # pyright: ignore[reportArgumentType]
+            temperature=temperature,
+            **kwargs,
+        )
+    except Exception:
+        elapsed_ms = int((time.time() - start) * 1000)
+        logger.exception("LLM request failed after %d ms", elapsed_ms)
+        raise
 
     # 记录响应内容
     log_llm_response(response)
+    elapsed_ms = int((time.time() - start) * 1000)
+    response_id = getattr(response, "id", "")
+    logger.info(
+        "LLM request done: model=%s, duration_ms=%d, response_id=%s",
+        model,
+        elapsed_ms,
+        response_id,
+    )
 
     return response
 

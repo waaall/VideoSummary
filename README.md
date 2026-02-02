@@ -1,32 +1,80 @@
 # VideoSummary
 
-AI-powered video captioning and summarization backend engine.
+AI 驱动的视频字幕生成和摘要后端引擎。
 
-## Features
+## 功能特性
 
-- ASR transcription (multiple backends: Whisper, FasterWhisper, JianYing, etc.)
-- Subtitle parsing and validation
-- LLM-based text summarization
-- Configurable DAG pipeline
+- ASR 语音转写（支持多种后端：Whisper, FasterWhisper, 剪映等）
+- 字幕解析与验证
+- 基于 LLM 的文本摘要
+- 缓存优先的固定流水线（URL / 本地文件）
 
-## Quick Start
+## 架构与工作流
+
+VideoSummary 采用分层架构设计，旨在实现高效、异步的视频处理和摘要生成。
+
+### 架构
+
+- **API 层 (`app/api`)**: 基于 FastAPI 构建，处理请求、任务队列和缓存编排。
+- **流水线层 (`app/pipeline`)**: 灵活的基于节点的系统，每个处理步骤（如下载、转写、摘要）都是一个 `PipelineNode`。节点通过 `PipelineContext` 共享状态。
+- **核心层 (`app/core`)**: 实现具体能力：
+  - **ASR**: 转写（Whisper, 剪映等）
+  - **LLM**: 摘要和优化（OpenAI, DeepSeek 等）
+  - **媒体**: 用于音视频处理的 FFmpeg 封装。
+- **缓存层 (`app/cache`)**: 强大的缓存系统，存储结果和中间产物，确保对重复请求的即时响应。
+
+### 工作流
+
+1.  **请求**: 用户提交视频 URL 或文件。
+2.  **缓存查询**: 系统检查结果是否存在。
+3.  **任务执行**: 如果未缓存，后台 worker 执行流水线：
+    - **下载**: 获取视频/音频内容。
+    - **转写 (ASR)**: 将音频转换为文本（如果存在字幕则跳过）。
+    - **处理**: 分割、优化和格式化脚本。
+    - **摘要**: LLM 生成摘要。
+4.  **完成**: 结果被缓存并返回。
+
+## 快速开始
 
 ```bash
-# Install dependencies
+# 安装依赖
 uv sync
 
-# Start API server
+# 启动 API 服务
 uvicorn app.api.main:app --reload --port 8765
 ```
 
-## API Endpoints
+### LLM 环境变量加载
 
-- `GET /health` - Health check
-- `POST /pipeline/run` - Run pipeline with DAG configuration
+服务进程不会自动读取 `tests/.env`，需要显式加载：
+
+```bash
+# 方式1：启动时加载 env 文件
+uvicorn app.api.main:app --reload --port 8765 --env-file tests/.env
+```
+
+或：
+
+```bash
+# 方式2：先导出再启动
+set -a
+source tests/.env
+set +a
+uvicorn app.api.main:app --reload --port 8765
+```
+
+## API 端点
+
+- `GET /health` - 健康检查
+- `POST /uploads` - 上传本地文件
+- `POST /cache/lookup` - 缓存查询（只读）
+- `POST /summaries` - 创建/查询摘要（缓存优先）
+- `GET /jobs/{job_id}` - 任务状态
+- `GET /cache/{cache_key}` - 缓存条目详情
 
 ---
 
-# Pipeline 服务测试指南
+# Summary 服务测试指南
 
 ## 服务管理
 
@@ -58,183 +106,30 @@ uvicorn app.api.main:app --reload --port 8765
 curl -s http://127.0.0.1:8765/health | python -m json.tool
 ```
 
-### 2. 简单串行 DAG
+### 2. URL 摘要（缓存优先）
 
 ```bash
-curl -s -X POST http://127.0.0.1:8765/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pipeline": {
-      "version": "v1",
-      "nodes": [
-        {"id": "input", "type": "InputNode", "params": {}},
-        {"id": "meta", "type": "FetchMetadataNode", "params": {}},
-        {"id": "summary", "type": "TextSummarizeNode", "params": {}}
-      ],
-      "edges": [
-        {"source": "input", "target": "meta"},
-        {"source": "meta", "target": "summary"}
-      ]
-    },
-    "inputs": {"source_type": "local", "video_path": "/test.mp4"}
+curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/json"   -d '{
+    "source_type": "url",
+    "source_url": "https://www.bilibili.com/video/BV1iApwzBEqZ/"
   }' | python -m json.tool
 ```
 
-### 3. 条件分支（URL 类型，条件满足）
+### 3. 任务状态查询
 
 ```bash
-curl -s -X POST http://127.0.0.1:8765/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pipeline": {
-      "version": "v1",
-      "nodes": [
-        {"id": "input", "type": "InputNode", "params": {}},
-        {"id": "download_sub", "type": "DownloadSubtitleNode", "params": {}},
-        {"id": "validate", "type": "ValidateSubtitleNode", "params": {"mock_valid": true}},
-        {"id": "summary", "type": "TextSummarizeNode", "params": {}}
-      ],
-      "edges": [
-        {"source": "input", "target": "download_sub", "condition": "source_type == '\''url'\''"},
-        {"source": "download_sub", "target": "validate"},
-        {"source": "validate", "target": "summary", "condition": "subtitle_valid == True"}
-      ]
-    },
-    "inputs": {"source_type": "url", "source_url": "https://example.com/video.mp4"}
+curl -s http://127.0.0.1:8765/jobs/<job_id> | python -m json.tool
+```
+
+### 4. 本地文件摘要
+
+```bash
+# 先上传文件
+curl -s -X POST http://127.0.0.1:8765/uploads   -F "file=@/path/to/example.srt" | python -m json.tool
+
+# 再创建摘要
+curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/json"   -d '{
+    "source_type": "local",
+    "file_id": "f_xxx"
   }' | python -m json.tool
 ```
-
-### 4. 条件分支（local 类型，条件不满足）
-
-```bash
-curl -s -X POST http://127.0.0.1:8765/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pipeline": {
-      "version": "v1",
-      "nodes": [
-        {"id": "input", "type": "InputNode", "params": {}},
-        {"id": "download_sub", "type": "DownloadSubtitleNode", "params": {}},
-        {"id": "validate", "type": "ValidateSubtitleNode", "params": {"mock_valid": true}},
-        {"id": "summary", "type": "TextSummarizeNode", "params": {}}
-      ],
-      "edges": [
-        {"source": "input", "target": "download_sub", "condition": "source_type == '\''url'\''"},
-        {"source": "download_sub", "target": "validate"},
-        {"source": "validate", "target": "summary", "condition": "subtitle_valid == True"}
-      ]
-    },
-    "inputs": {"source_type": "local", "video_path": "/test.mp4"}
-  }' | python -m json.tool
-```
-
-### 5. 循环依赖检测
-
-```bash
-curl -s -X POST http://127.0.0.1:8765/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pipeline": {
-      "version": "v1",
-      "nodes": [
-        {"id": "a", "type": "InputNode", "params": {}},
-        {"id": "b", "type": "InputNode", "params": {}},
-        {"id": "c", "type": "InputNode", "params": {}}
-      ],
-      "edges": [
-        {"source": "a", "target": "b"},
-        {"source": "b", "target": "c"},
-        {"source": "c", "target": "a"}
-      ]
-    },
-    "inputs": {"source_type": "local", "video_path": "/test.mp4"}
-  }' | python -m json.tool
-```
-
-预期返回 400 错误，提示循环依赖。
-
-## 可用节点
-
-| 节点类型 | 参数 | 输出字段 |
-|---------|------|---------|
-| InputNode | - | source_type |
-| FetchMetadataNode | - | video_duration |
-| DownloadSubtitleNode | work_dir | subtitle_path |
-| DownloadVideoNode | work_dir | video_path |
-| ParseSubtitleNode | - | asr_data, subtitle_segment_count |
-| ValidateSubtitleNode | - | subtitle_valid, subtitle_coverage_ratio |
-| ExtractAudioNode | audio_track_index | audio_path |
-| TranscribeNode | config | transcript_token_count, asr_data |
-| DetectSilenceNode | - | is_silent, audio_rms |
-| TextSummarizeNode | model, max_tokens, prompt | summary_text |
-| SampleFramesNode | - | frames_paths (阶段4) |
-| VlmSummarizeNode | - | vlm_summary (阶段4) |
-| MergeSummaryNode | - | summary_text (阶段4) |
-
-## 运行测试
-
-### 运行所有 Pipeline 测试
-
-```bash
-uv run pytest tests/test_pipeline/ -v
-```
-
-### 测试覆盖内容
-
-```
-tests/test_pipeline/
-├── conftest.py          # 共享 fixtures
-├── test_nodes.py        # 节点单元测试（19 个）
-└── test_pipeline_run.py # 流程集成测试（10 个）
-```
-
-**节点测试**：
-- `TestInputNode`：输入验证（source_type、url/local 校验）
-- `TestParseSubtitleNode`：SRT 文件解析
-- `TestValidateSubtitleNode`：字幕覆盖率校验
-- `TestDetectSilenceNode`：静音检测（基于 tokens/min）
-- `TestNodeOutputKeys`：节点输出字段验证
-
-**流程测试**：
-- `TestPipelineGraph`：DAG 拓扑排序、循环依赖检测
-- `TestPipelineRunner`：条件分支执行/跳过、trace 记录
-- `TestLocalVideoFlow`：本地视频跳过下载节点
-- `TestURLSubtitlePriorityFlow`：URL 字幕有效时跳过视频下载
-- `TestThresholdsConfiguration`：自定义阈值配置
-
-### Python 单元测试示例
-
-```python
-from app.api.schemas import PipelineConfig, PipelineNodeConfig, PipelineEdgeConfig, PipelineInputs
-from app.pipeline.graph import PipelineGraph
-from app.pipeline.runner import PipelineRunner
-from app.pipeline.context import PipelineContext
-from app.pipeline.registry import get_default_registry
-
-# 构建配置
-config = PipelineConfig(
-    version='v1',
-    nodes=[
-        PipelineNodeConfig(id='input', type='InputNode', params={}),
-        PipelineNodeConfig(id='validate', type='ValidateSubtitleNode', params={}),
-    ],
-    edges=[
-        PipelineEdgeConfig(source='input', target='validate'),
-    ]
-)
-
-# 执行
-graph = PipelineGraph(config)
-registry = get_default_registry()
-runner = PipelineRunner(graph, registry)
-
-inputs = PipelineInputs(source_type='local', video_path='/test.mp4')
-ctx = PipelineContext.from_inputs(inputs)
-ctx = runner.run(ctx)
-
-# 检查结果
-print(f"subtitle_valid: {ctx.subtitle_valid}")
-for t in ctx.trace:
-    print(f'{t.node_id}: {t.status} ({t.elapsed_ms}ms)')
-```
-

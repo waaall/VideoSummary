@@ -120,7 +120,7 @@ docker build -t video-captioner .
 
 # 2. 运行容器
 docker run -d \
-  -p 8501:8501 \
+  -p 8501:8765 \
   -v $(pwd)/temp:/app/temp \
   -e OPENAI_BASE_URL="Your API address" \
   -e OPENAI_API_KEY="Your API key" \

@@ -1,0 +1,30 @@
+# Docker Compose 配置文件
+services:
+  videosummary-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: videosummary:latest
+    container_name: videosummary-api
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./AppData:/app/AppData
+      - ./work-dir:/app/work-dir
+      - ./resource:/app/resource
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - JOB_WORKER_COUNT=${JOB_WORKER_COUNT:-1}
+      - UPLOAD_CONCURRENCY=${UPLOAD_CONCURRENCY:-2}
+      - UPLOAD_RATE_LIMIT_PER_MINUTE=${UPLOAD_RATE_LIMIT_PER_MINUTE:-30}
+      - SUMMARY_RATE_LIMIT_PER_MINUTE=${SUMMARY_RATE_LIMIT_PER_MINUTE:-60}
+    restart: unless-stopped
+    healthcheck:
+      # 用 python 发起一次 HTTP 请求，不依赖 curl/wget 是否存在
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 10

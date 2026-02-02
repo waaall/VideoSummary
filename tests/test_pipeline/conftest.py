@@ -1,27 +1,9 @@
-"""Pipeline 测试共享 fixtures"""
+"""Pipeline 节点测试共享 fixtures"""
 
 import tempfile
 from pathlib import Path
 
 import pytest
-
-from app.api.schemas import (
-    PipelineConfig,
-    PipelineEdgeConfig,
-    PipelineInputs,
-    PipelineNodeConfig,
-    PipelineThresholds,
-)
-from app.pipeline.context import PipelineContext
-from app.pipeline.graph import PipelineGraph
-from app.pipeline.registry import get_default_registry
-from app.pipeline.runner import PipelineRunner
-
-
-@pytest.fixture
-def registry():
-    """获取默认节点注册表"""
-    return get_default_registry()
 
 
 @pytest.fixture
@@ -56,46 +38,3 @@ def sample_subtitle_path(temp_dir):
     path.write_text(srt_content, encoding="utf-8")
     return str(path)
 
-
-@pytest.fixture
-def default_thresholds():
-    """默认阈值配置"""
-    return PipelineThresholds(
-        subtitle_coverage_min=0.8,
-        transcript_token_per_min_min=2.0,
-        audio_rms_max_for_silence=0.01,
-    )
-
-
-def create_pipeline_config(nodes: list, edges: list) -> PipelineConfig:
-    """辅助函数：创建 PipelineConfig"""
-    return PipelineConfig(
-        version="v1",
-        nodes=[PipelineNodeConfig(**n) for n in nodes],
-        edges=[PipelineEdgeConfig(**e) for e in edges],
-    )
-
-
-def create_context(
-    source_type: str,
-    source_url: str = None,
-    video_path: str = None,
-    subtitle_path: str = None,
-    thresholds: PipelineThresholds = None,
-) -> PipelineContext:
-    """辅助函数：创建 PipelineContext"""
-    inputs = PipelineInputs(
-        source_type=source_type,
-        source_url=source_url,
-        video_path=video_path,
-        subtitle_path=subtitle_path,
-    )
-    return PipelineContext.from_inputs(inputs, thresholds)
-
-
-def run_pipeline(config: PipelineConfig, ctx: PipelineContext) -> PipelineContext:
-    """辅助函数：执行 pipeline"""
-    graph = PipelineGraph(config)
-    registry = get_default_registry()
-    runner = PipelineRunner(graph, registry)
-    return runner.run(ctx)

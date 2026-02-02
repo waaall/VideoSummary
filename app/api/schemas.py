@@ -1,150 +1,97 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
 
-class PipelineNodeConfig(BaseModel):
-    id: str = Field(..., description="Unique node id")
-    type: str = Field(..., description="Node type registered in NodeRegistry")
-    params: Dict[str, Any] = Field(default_factory=dict)
-
-
-class PipelineEdgeConfig(BaseModel):
-    source: str = Field(..., description="Upstream node id")
-    target: str = Field(..., description="Downstream node id")
-    condition: Optional[str] = Field(
-        default=None, description="Boolean expression evaluated on Context"
-    )
-
-
-class PipelineConfig(BaseModel):
-    version: str = "v1"
-    entrypoint: Optional[str] = Field(
-        default=None, description="Optional entry node id"
-    )
-    nodes: List[PipelineNodeConfig]
-    edges: List[PipelineEdgeConfig]
-
-
-class PipelineInputs(BaseModel):
-    source_type: str = Field(..., description="url|local")
-    source_url: Optional[str] = None
-    video_path: Optional[str] = None
-    subtitle_path: Optional[str] = None
-    audio_path: Optional[str] = None
-    extra: Dict[str, Any] = Field(default_factory=dict)
-
-
-class PipelineThresholds(BaseModel):
-    subtitle_coverage_min: float = Field(
-        0.8, description="Minimum subtitle coverage ratio to be considered valid"
-    )
-    transcript_token_per_min_min: float = Field(
-        2.0, description="Minimum transcript tokens per minute"
-    )
-    audio_rms_max_for_silence: float = Field(
-        0.01, description="Max RMS to be considered silent"
-    )
-
-
-class PipelineRunRequest(BaseModel):
-    pipeline: PipelineConfig
-    inputs: PipelineInputs
-    thresholds: Optional[PipelineThresholds] = None
-    options: Dict[str, Any] = Field(default_factory=dict)
-
-
-class AutoPipelineInputs(BaseModel):
-    source_type: Optional[str] = None
-    source_url: Optional[str] = None
-    video_path: Optional[str] = None
-    subtitle_path: Optional[str] = None
-    audio_path: Optional[str] = None
-    extra: Dict[str, Any] = Field(default_factory=dict)
-
-
-class AutoPipelineRunRequest(BaseModel):
-    inputs: AutoPipelineInputs
-    thresholds: Optional[PipelineThresholds] = None
-    options: Dict[str, Any] = Field(default_factory=dict)
-
-
-class TraceEvent(BaseModel):
-    node_id: str
-    status: str
-    elapsed_ms: Optional[int] = None
-    error: Optional[str] = None
-    output_keys: Optional[List[str]] = None
-    started_at: Optional[float] = None
-    ended_at: Optional[float] = None
-    retryable: Optional[bool] = None
-
-
-class PipelineRunResponse(BaseModel):
-    run_id: str
-    status: str
-    summary_text: Optional[str] = None
-    context: Dict[str, Any] = Field(default_factory=dict)
-    trace: List[TraceEvent] = Field(default_factory=list)
-    created_at: Optional[float] = None
-    updated_at: Optional[float] = None
-    started_at: Optional[float] = None
-    ended_at: Optional[float] = None
-    error: Optional[str] = None
-
-
-class PipelineRunCreateResponse(BaseModel):
-    run_id: str
-    status: str
-    queued_at: Optional[float] = None
-
-
-# ============ 文件上传相关 ============
-
-
 class UploadResponse(BaseModel):
     """文件上传响应"""
+
     file_id: str = Field(..., description="文件唯一标识，用于后续流程引用")
     original_name: str = Field(..., description="原始文件名")
     size: int = Field(..., description="文件大小（字节）")
     mime_type: str = Field(..., description="MIME 类型")
     file_type: str = Field(..., description="文件类型: video|audio|subtitle")
+    file_hash: Optional[str] = Field(default=None, description="文件内容 SHA256")
 
 
-class LocalPipelineInputs(BaseModel):
-    """本地流程输入（支持 file_id）
+class CacheLookupRequest(BaseModel):
+    """缓存查询请求"""
 
-    优先使用 file_id 参数，如果提供则忽略对应的 path 参数。
-    """
-    # file_id 方式（推荐，前端上传后使用）
-    video_file_id: Optional[str] = Field(
-        default=None, description="视频文件 ID（通过 /uploads 上传后获得）"
+    source_type: str = Field(..., description="来源类型: url | local")
+    source_url: Optional[str] = Field(default=None, description="URL (source_type=url 时)")
+    file_id: Optional[str] = Field(default=None, description="上传文件 ID (source_type=local 时)")
+    file_hash: Optional[str] = Field(default=None, description="文件 hash (source_type=local 时)")
+
+    class Config:
+        extra = "forbid"
+
+
+class CacheLookupResponse(BaseModel):
+    """缓存查询响应"""
+
+    hit: bool = Field(..., description="是否命中缓存")
+    status: str = Field(
+        ..., description="状态: completed | running | pending | failed | not_found"
     )
-    audio_file_id: Optional[str] = Field(
-        default=None, description="音频文件 ID（通过 /uploads 上传后获得）"
-    )
-    subtitle_file_id: Optional[str] = Field(
-        default=None, description="字幕文件 ID（通过 /uploads 上传后获得）"
-    )
-
-    # path 方式（服务端本地路径，内部调试用）
-    video_path: Optional[str] = Field(
-        default=None, description="视频文件本地路径（服务端路径）"
-    )
-    audio_path: Optional[str] = Field(
-        default=None, description="音频文件本地路径（服务端路径）"
-    )
-    subtitle_path: Optional[str] = Field(
-        default=None, description="字幕文件本地路径（服务端路径）"
-    )
-
-    extra: Dict[str, Any] = Field(default_factory=dict)
+    cache_key: Optional[str] = Field(default=None, description="缓存键")
+    summary_text: Optional[str] = Field(default=None, description="摘要文本")
+    bundle_path: Optional[str] = Field(default=None, description="Bundle 目录路径")
+    job_id: Optional[str] = Field(default=None, description="任务 ID (status=running/pending 时)")
+    error: Optional[str] = Field(default=None, description="错误信息")
+    created_at: Optional[float] = Field(default=None, description="创建时间")
+    updated_at: Optional[float] = Field(default=None, description="更新时间")
 
 
-class LocalPipelineRunRequest(BaseModel):
-    """本地流程请求（支持 file_id）"""
-    inputs: LocalPipelineInputs
-    thresholds: Optional[PipelineThresholds] = None
-    options: Dict[str, Any] = Field(default_factory=dict)
+class SummaryRequest(BaseModel):
+    """摘要请求（统一执行入口）"""
+
+    source_type: str = Field(..., description="来源类型: url | local")
+    source_url: Optional[str] = Field(default=None, description="URL (source_type=url 时)")
+    file_id: Optional[str] = Field(default=None, description="上传文件 ID (source_type=local 时)")
+    file_hash: Optional[str] = Field(default=None, description="文件 hash (source_type=local 时)")
+    refresh: bool = Field(default=False, description="强制重新生成")
+
+    class Config:
+        extra = "forbid"
+
+
+class SummaryResponse(BaseModel):
+    """摘要响应"""
+
+    status: str = Field(..., description="状态: completed | running | pending | failed")
+    cache_key: str = Field(..., description="缓存键")
+    job_id: Optional[str] = Field(default=None, description="任务 ID")
+    summary_text: Optional[str] = Field(default=None, description="摘要文本 (status=completed 时)")
+    error: Optional[str] = Field(default=None, description="错误信息")
+    created_at: Optional[float] = Field(default=None, description="创建时间")
+
+
+class JobStatusResponse(BaseModel):
+    """任务状态响应"""
+
+    job_id: str = Field(..., description="任务 ID")
+    cache_key: str = Field(..., description="关联的缓存键")
+    status: str = Field(..., description="状态: pending | running | completed | failed")
+    created_at: float = Field(..., description="创建时间")
+    updated_at: float = Field(..., description="更新时间")
+    error: Optional[str] = Field(default=None, description="错误信息")
+    cache_status: Optional[str] = Field(default=None, description="缓存状态")
+    summary_text: Optional[str] = Field(default=None, description="摘要文本")
+
+
+class CacheEntryResponse(BaseModel):
+    """缓存条目响应"""
+
+    cache_key: str = Field(..., description="缓存键")
+    source_type: str = Field(..., description="来源类型")
+    source_ref: str = Field(..., description="来源引用 (规范化 URL 或文件 hash)")
+    status: str = Field(..., description="状态")
+    profile_version: str = Field(..., description="处理策略版本")
+    summary_text: Optional[str] = Field(default=None, description="摘要文本")
+    bundle_path: Optional[str] = Field(default=None, description="Bundle 目录路径")
+    error: Optional[str] = Field(default=None, description="错误信息")
+    created_at: float = Field(..., description="创建时间")
+    updated_at: float = Field(..., description="更新时间")
+    last_accessed: Optional[float] = Field(default=None, description="最后访问时间")

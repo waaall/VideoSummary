@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 VERSION = "v1.4.0"
+# Processing profile version for cache validity. Bump when pipeline strategy changes.
+PROFILE_VERSION = os.getenv("PROFILE_VERSION", "2026-02-02")
 YEAR = 2025
 APP_NAME = "VideoSummary"
 AUTHOR = "Weifeng"

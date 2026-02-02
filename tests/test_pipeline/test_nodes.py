@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.api.schemas import PipelineInputs, PipelineThresholds
+from app.pipeline.context import PipelineInputs
 from app.core.asr.asr_data import ASRData, ASRDataSeg
 from app.pipeline.context import PipelineContext
 from app.pipeline.nodes.core import (

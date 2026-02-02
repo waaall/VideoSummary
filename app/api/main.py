@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import os
-import time
-from typing import Any, Dict
+import uuid
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.auto_pipeline import build_local_auto_pipeline, build_url_auto_pipeline
 from app.api.schemas import (
-    AutoPipelineRunRequest,
-    LocalPipelineRunRequest,
-    PipelineInputs,
-    PipelineRunRequest,
-    PipelineRunResponse,
-    PipelineRunCreateResponse,
+    CacheEntryResponse,
+    CacheLookupRequest,
+    CacheLookupResponse,
+    JobStatusResponse,
+    SummaryRequest,
+    SummaryResponse,
     UploadResponse,
 )
 from app.api.persistence import get_store
@@ -32,10 +30,14 @@ from app.api.limits import (
     UPLOAD_WRITE_TIMEOUT_SECONDS,
     UPLOAD_CHUNK_SIZE,
     get_client_key,
-    pipeline_rate_limiter,
+    summary_rate_limiter,
     upload_rate_limiter,
 )
-from app.api.worker import PipelineJob, generate_run_id, get_job_queue
+from app.api.worker import CacheJob, get_job_queue
+from app.cache import compute_file_hash, start_gc_background
+from app.cache.cache_key import compute_cache_key_from_source, normalize_url
+from app.cache.cache_service import get_cache_service
+from app.core.utils.logger import setup_logger
 
 APP_NAME = "VideoSummary API"
 VERSION = "0.1.0"
@@ -53,14 +55,7 @@ app.add_middleware(
 )
 
 
-def _model_to_dict(value: Any) -> Dict[str, Any]:
-    if value is None:
-        return {}
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    if hasattr(value, "dict"):
-        return value.dict()
-    return dict(value)
+logger = setup_logger("api")
 
 
 def _enforce_rate_limit(request: Request, limiter) -> None:
@@ -73,45 +68,74 @@ def _enforce_rate_limit(request: Request, limiter) -> None:
         raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
 
 
-def _enqueue_pipeline(
+def _generate_request_id(request: Request) -> str:
+    request_id = request.headers.get("x-request-id")
+    if request_id:
+        return request_id
+    return f"req_{uuid.uuid4().hex}"
+
+
+def _resolve_source(
     *,
-    pipeline,
-    inputs,
-    thresholds,
-    options,
-) -> PipelineRunCreateResponse:
-    run_id = generate_run_id()
+    source_type: str,
+    source_url: str | None,
+    file_id: str | None,
+    file_hash: str | None,
+    persist_file_hash: bool = True,
+) -> tuple[str, str | None, str]:
+    """Resolve source_ref, file_hash, cache_key for URL/local inputs."""
     store = get_store()
-    store.create_run(
-        run_id,
-        "queued",
-        pipeline=_model_to_dict(pipeline),
-        inputs=_model_to_dict(inputs),
-        thresholds=_model_to_dict(thresholds) if thresholds is not None else None,
-        options=options or {},
-    )
-    queue = get_job_queue(worker_count=int(os.getenv("PIPELINE_WORKER_COUNT", "1")))
-    queue.enqueue(
-        PipelineJob(
-            run_id=run_id,
-            pipeline=pipeline,
-            inputs=inputs,
-            thresholds=thresholds,
-            options=options or {},
-        )
-    )
-    return PipelineRunCreateResponse(run_id=run_id, status="queued", queued_at=time.time())
+
+    resolved_file_hash = file_hash
+    verified_by_file_id = False
+    if source_type == "url":
+        if not source_url:
+            raise HTTPException(status_code=400, detail="source_type 为 url 时必须提供 source_url")
+        source_ref = normalize_url(source_url)
+    elif source_type == "local":
+        if file_id and not resolved_file_hash:
+            try:
+                storage = get_file_storage()
+                uploaded = storage.get(file_id)
+                if uploaded.file_hash:
+                    resolved_file_hash = uploaded.file_hash
+                else:
+                    resolved_file_hash = compute_file_hash(str(uploaded.stored_path))
+                    if persist_file_hash:
+                        store.update_upload_file_hash(file_id, resolved_file_hash)
+                    uploaded.file_hash = resolved_file_hash
+                verified_by_file_id = True
+            except UploadFileNotFoundError as e:
+                raise HTTPException(status_code=404, detail=str(e))
+        if not resolved_file_hash:
+            raise HTTPException(status_code=400, detail="source_type 为 local 时必须提供 file_hash 或 file_id")
+        if not verified_by_file_id:
+            upload_record = store.get_upload_by_hash(resolved_file_hash)
+            if not upload_record:
+                raise HTTPException(status_code=404, detail="file_hash 不存在或已过期")
+        source_ref = resolved_file_hash
+    else:
+        raise HTTPException(status_code=400, detail=f"不支持的 source_type: {source_type}")
+
+    try:
+        cache_key = compute_cache_key_from_source(source_type, source_url, resolved_file_hash)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return source_ref, resolved_file_hash, cache_key
 
 
 @app.on_event("startup")
 def _startup() -> None:
-    queue = get_job_queue(worker_count=int(os.getenv("PIPELINE_WORKER_COUNT", "1")))
+    queue = get_job_queue(worker_count=int(os.getenv("JOB_WORKER_COUNT", "1")))
     queue.start()
+    # 启动缓存 GC
+    start_gc_background()
 
 
 @app.on_event("shutdown")
 def _shutdown() -> None:
-    queue = get_job_queue(worker_count=int(os.getenv("PIPELINE_WORKER_COUNT", "1")))
+    queue = get_job_queue(worker_count=int(os.getenv("JOB_WORKER_COUNT", "1")))
     queue.stop()
 
 
@@ -133,7 +157,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     - 音频: mp3, wav, flac, aac, m4a, ogg, wma
     - 字幕: srt, vtt, ass, ssa, sub
 
-    上传后返回 file_id，可用于 /pipeline/auto/local 接口。
+    上传后返回 file_id，可用于 /summaries (source_type=local) 接口。
     文件默认保留 24 小时后自动清理。
     """
     _enforce_rate_limit(request, upload_rate_limiter)
@@ -165,6 +189,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
             size=uploaded.size,
             mime_type=uploaded.mime_type,
             file_type=uploaded.file_type,
+            file_hash=uploaded.file_hash,
         )
 
     except FileSizeError as e:
@@ -179,138 +204,223 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
         except Exception:
             pass
 
-@app.post("/pipeline/run", response_model=PipelineRunCreateResponse, status_code=202)
-def pipeline_run(request: Request, req: PipelineRunRequest):
-    """运行管道
 
-    接收 DAG 配置和输入参数，执行管线并返回结果。
+# ============ 缓存 API ============
+
+
+@app.post("/cache/lookup", response_model=CacheLookupResponse)
+def cache_lookup(request: Request, req: CacheLookupRequest):
+    """缓存查询
+
+    根据 source_type 和 source_url/file_hash 查询缓存状态。
+    - 命中: hit=true, status=completed, 返回 summary_text
+    - 处理中: hit=false, status=running/pending, 返回 job_id
+    - 失败/未找到: hit=false, status=failed/not_found
     """
-    _enforce_rate_limit(request, pipeline_rate_limiter)
-    return _enqueue_pipeline(
-        pipeline=req.pipeline,
-        inputs=req.inputs,
-        thresholds=req.thresholds,
-        options=req.options,
+    _enforce_rate_limit(request, summary_rate_limiter)
+    request_id = _generate_request_id(request)
+
+    _source_ref, resolved_hash, cache_key = _resolve_source(
+        source_type=req.source_type,
+        source_url=req.source_url,
+        file_id=req.file_id,
+        file_hash=req.file_hash,
+        persist_file_hash=False,
     )
 
-
-@app.post("/pipeline/auto/url", response_model=PipelineRunCreateResponse, status_code=202)
-def pipeline_auto_url(request: Request, req: AutoPipelineRunRequest):
-    """URL 自动流程（字幕优先）"""
-    _enforce_rate_limit(request, pipeline_rate_limiter)
-    if req.inputs.source_type and req.inputs.source_type != "url":
-        raise HTTPException(status_code=400, detail="URL 自动流程仅支持 source_type=url")
-
-    inputs = PipelineInputs(
-        source_type="url",
-        source_url=req.inputs.source_url,
-        video_path=req.inputs.video_path,
-        subtitle_path=req.inputs.subtitle_path,
-        audio_path=req.inputs.audio_path,
-        extra=req.inputs.extra,
-    )
-    pipeline = build_url_auto_pipeline(req.options)
-    return _enqueue_pipeline(
-        pipeline=pipeline,
-        inputs=inputs,
-        thresholds=req.thresholds,
-        options=req.options,
+    logger.info(
+        "cache_lookup start request_id=%s source_type=%s cache_key=%s",
+        request_id,
+        req.source_type,
+        cache_key,
     )
 
+    cache_service = get_cache_service()
+    result = cache_service.lookup(
+        source_type=req.source_type,
+        source_url=req.source_url,
+        file_hash=resolved_hash,
+        strict=True,
+        touch=False,
+    )
 
-@app.post("/pipeline/auto/local", response_model=PipelineRunCreateResponse, status_code=202)
-def pipeline_auto_local(request: Request, req: LocalPipelineRunRequest):
-    """本地自动流程（字幕/音频/视频）
+    logger.info(
+        "cache_lookup done request_id=%s cache_key=%s status=%s hit=%s",
+        request_id,
+        result.cache_key,
+        result.status,
+        result.hit,
+    )
 
-    支持两种输入方式：
-    1. file_id 方式（推荐）：先通过 POST /uploads 上传文件，获得 file_id 后传入
-    2. path 方式：直接传入服务端本地路径（仅内部调试用）
+    return CacheLookupResponse(**result.to_dict())
 
-    如果同时提供 file_id 和 path，优先使用 file_id。
+
+@app.post("/summaries", response_model=SummaryResponse, status_code=200)
+def create_summary(request: Request, req: SummaryRequest):
+    """统一摘要入口（缓存优先）
+
+    流程:
+    1. 计算 cache_key
+    2. 查询缓存:
+       - completed: 直接返回摘要
+       - running/pending: 返回 job_id
+       - failed/not_found 或 refresh=true: 创建新任务
     """
-    _enforce_rate_limit(request, pipeline_rate_limiter)
-    # 解析 file_id 为实际路径
-    video_path = req.inputs.video_path
-    audio_path = req.inputs.audio_path
-    subtitle_path = req.inputs.subtitle_path
+    _enforce_rate_limit(request, summary_rate_limiter)
+    request_id = _generate_request_id(request)
 
-    try:
-        storage = get_file_storage()
-        resolved = storage.resolve_file_ids(
-            video_file_id=req.inputs.video_file_id,
-            audio_file_id=req.inputs.audio_file_id,
-            subtitle_file_id=req.inputs.subtitle_file_id,
+    cache_service = get_cache_service()
+
+    source_ref, resolved_hash, cache_key = _resolve_source(
+        source_type=req.source_type,
+        source_url=req.source_url,
+        file_id=req.file_id,
+        file_hash=req.file_hash,
+    )
+
+    logger.info(
+        "summary request start request_id=%s source_type=%s cache_key=%s",
+        request_id,
+        req.source_type,
+        cache_key,
+    )
+
+    # 查询缓存（非 refresh 模式）
+    if not req.refresh:
+        result = cache_service.lookup(
+            source_type=req.source_type,
+            source_url=req.source_url,
+            file_hash=resolved_hash,
+            strict=True,
+            touch=True,
         )
 
-        # file_id 优先于 path
-        if resolved["video_path"]:
-            video_path = resolved["video_path"]
-        if resolved["audio_path"]:
-            audio_path = resolved["audio_path"]
-        if resolved["subtitle_path"]:
-            subtitle_path = resolved["subtitle_path"]
+        # 缓存命中
+        if result.hit and result.status == "completed":
+            logger.info(
+                "summary cache hit request_id=%s cache_key=%s",
+                request_id,
+                cache_key,
+            )
+            return SummaryResponse(
+                status="completed",
+                cache_key=cache_key,
+                summary_text=result.summary_text,
+                created_at=result.created_at,
+            )
 
-    except UploadFileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except FileTypeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # 正在处理中
+        if result.status in ("running", "pending"):
+            logger.info(
+                "summary cache running request_id=%s cache_key=%s job_id=%s",
+                request_id,
+                cache_key,
+                result.job_id,
+            )
+            return SummaryResponse(
+                status=result.status,
+                cache_key=cache_key,
+                job_id=result.job_id,
+                created_at=result.created_at,
+            )
 
-    inputs = PipelineInputs(
-        source_type="local",
-        source_url=None,
-        video_path=video_path,
-        subtitle_path=subtitle_path,
-        audio_path=audio_path,
-        extra=req.inputs.extra,
-    )
-    pipeline = build_local_auto_pipeline(req.options)
-    return _enqueue_pipeline(
-        pipeline=pipeline,
-        inputs=inputs,
-        thresholds=req.thresholds,
-        options=req.options,
-    )
+    # 创建或更新缓存条目
+    entry = cache_service.get_or_create_entry(cache_key, req.source_type, source_ref)
 
-
-@app.get("/pipeline/run/{run_id}", response_model=PipelineRunResponse)
-def pipeline_run_status(run_id: str):
-    """查询运行状态"""
-    store = get_store()
-    record = store.get_run(run_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="run_id 不存在")
-
-    nodes = store.list_run_nodes(run_id)
-    trace = []
-    for node in nodes:
-        trace.append(
-            {
-                "node_id": node["node_id"],
-                "status": node["status"],
-                "elapsed_ms": node.get("elapsed_ms"),
-                "error": node.get("error"),
-                "output_keys": node.get("output_keys"),
-                "started_at": node.get("started_at"),
-                "ended_at": node.get("ended_at"),
-                "retryable": node.get("retryable"),
-            }
+    if req.refresh:
+        cache_service.bundle_manager.delete_bundle(cache_key, entry.source_type)
+        cache_service.store.update_cache_entry(
+            cache_key,
+            status="pending",
+            summary_text="",
+            error="",
         )
 
-    return PipelineRunResponse(
-        run_id=record["run_id"],
-        status=record["status"],
-        summary_text=record.get("summary_text"),
-        context=record.get("context") or {},
-        trace=trace,
-        created_at=record.get("created_at"),
-        updated_at=record.get("updated_at"),
-        started_at=record.get("started_at"),
-        ended_at=record.get("ended_at"),
-        error=record.get("error"),
+    # 创建任务
+    job_id = cache_service.create_job(cache_key)
+
+    # 入队执行
+    queue = get_job_queue(worker_count=int(os.getenv("JOB_WORKER_COUNT", "1")))
+    queue.enqueue(
+        CacheJob(
+            job_id=job_id,
+            cache_key=cache_key,
+            source_type=req.source_type,
+            source_url=req.source_url,
+            file_hash=resolved_hash,
+            request_id=request_id,
+        )
+    )
+
+    # 更新状态为 pending
+    cache_service.update_status(cache_key, "pending")
+
+    logger.info(
+        "summary job enqueued request_id=%s cache_key=%s job_id=%s",
+        request_id,
+        cache_key,
+        job_id,
+    )
+
+    return SummaryResponse(
+        status="pending",
+        cache_key=cache_key,
+        job_id=job_id,
+        created_at=entry.created_at,
     )
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
+@app.get("/jobs/{job_id}", response_model=JobStatusResponse)
+def get_job_status(job_id: str):
+    """查询任务状态"""
+    cache_service = get_cache_service()
+    job = cache_service.get_job(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="job_id 不存在")
+
+    cache_entry = job.get("cache_entry", {})
+
+    return JobStatusResponse(
+        job_id=job["job_id"],
+        cache_key=job["cache_key"],
+        status=job["status"],
+        created_at=job["created_at"],
+        updated_at=job["updated_at"],
+        error=job.get("error"),
+        cache_status=cache_entry.get("status"),
+        summary_text=cache_entry.get("summary_text"),
+    )
+
+
+@app.get("/cache/{cache_key}", response_model=CacheEntryResponse)
+def get_cache_entry(cache_key: str):
+    """获取缓存条目详情"""
+    cache_service = get_cache_service()
+    entry = cache_service.get_entry(cache_key)
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="cache_key 不存在")
+
+    # 更新访问时间
+    cache_service.store.touch_cache_entry(cache_key)
+
+    return CacheEntryResponse(
+        cache_key=entry.cache_key,
+        source_type=entry.source_type,
+        source_ref=entry.source_ref,
+        status=entry.status,
+        profile_version=entry.profile_version,
+        summary_text=entry.summary_text,
+        bundle_path=entry.bundle_path,
+        error=entry.error,
+        created_at=entry.created_at,
+        updated_at=entry.updated_at,
+        last_accessed=entry.last_accessed,
+    )
+
+
+def run_server(host: str = "0.0.0.0", port: int = 8765, reload: bool = False) -> None:
     """启动 API 服务器
 
     Args:

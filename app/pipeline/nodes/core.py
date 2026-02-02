@@ -5,13 +5,14 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
 import yt_dlp
 
-from app.config import APPDATA_PATH, WORK_PATH
+from app.config import APPDATA_PATH, PROFILE_VERSION, WORK_PATH
 from app.core.asr.asr_data import ASRData
 from app.core.utils.logger import setup_logger
 from app.core.utils.video_utils import get_video_info, video2audio
@@ -124,12 +125,22 @@ class DownloadSubtitleNode(PipelineNode):
         if not url:
             raise ValueError("source_url 未设置")
 
-        work_dir = self.params.get("work_dir") or str(
-            WORK_PATH / "subtitles" / ctx.run_id
+        # 优先使用 bundle_dir，否则使用新 tmp 路径
+        work_dir = self.params.get("work_dir") or ctx.bundle_dir or str(
+            WORK_PATH / "tmp" / ctx.run_id
         )
         subtitle_path = self._download_subtitle(url, work_dir)
 
         if subtitle_path:
+            # 如果有 bundle_dir，将字幕移动到标准位置
+            if ctx.bundle_dir:
+                ext = Path(subtitle_path).suffix or ".vtt"
+                target_path = Path(ctx.bundle_dir) / f"subtitle{ext.lower()}"
+                if Path(subtitle_path) != target_path:
+                    import shutil
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(subtitle_path, target_path)
+                    subtitle_path = str(target_path)
             ctx.set("subtitle_path", subtitle_path)
             logger.info(f"字幕下载成功: {subtitle_path}")
         else:
@@ -261,13 +272,23 @@ class DownloadVideoNode(PipelineNode):
         if not url:
             raise ValueError("source_url 未设置")
 
-        work_dir = self.params.get("work_dir") or str(
-            WORK_PATH / "downloads" / ctx.run_id
+        # 优先使用 bundle_dir，否则使用新 tmp 路径
+        work_dir = self.params.get("work_dir") or ctx.bundle_dir or str(
+            WORK_PATH / "tmp" / ctx.run_id
         )
         video_path = self._download_video(url, work_dir)
 
         if not video_path:
             raise RuntimeError("视频下载失败")
+
+        # 如果有 bundle_dir，将视频移动到标准位置
+        if ctx.bundle_dir:
+            target_path = Path(ctx.bundle_dir) / "video.mp4"
+            if Path(video_path) != target_path:
+                import shutil
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(video_path, target_path)
+                video_path = str(target_path)
 
         ctx.set("video_path", video_path)
         logger.info(f"视频下载成功: {video_path}")
@@ -436,12 +457,18 @@ class ExtractAudioNode(PipelineNode):
         if not video_path or not Path(video_path).exists():
             raise ValueError(f"视频文件不存在: {video_path}")
 
-        # 创建临时音频文件
+        # 确定音频输出路径
         audio_track_index = self.params.get("audio_track_index", 0)
-        temp_dir = Path(tempfile.gettempdir()) / "videosummary"
-        temp_dir.mkdir(parents=True, exist_ok=True)
-
-        audio_path = temp_dir / f"{ctx.run_id}_audio.wav"
+        if ctx.bundle_dir:
+            # 使用 bundle_dir 作为输出目录
+            output_dir = Path(ctx.bundle_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            audio_path = output_dir / "audio.wav"
+        else:
+            # 使用临时目录
+            temp_dir = Path(tempfile.gettempdir()) / "videosummary"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            audio_path = temp_dir / f"{ctx.run_id}_audio.wav"
 
         # 执行转换（并发限制）
         with transcode_limiter.acquire():
@@ -532,6 +559,15 @@ class TranscribeNode(PipelineNode):
         ctx.set("transcript_token_count", token_count)
         ctx.set("transcript_segment_count", len(asr_data.segments))
 
+        # 保存 ASR 结果到 bundle_dir
+        if ctx.bundle_dir:
+            import json
+            asr_path = Path(ctx.bundle_dir) / "asr.json"
+            asr_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(asr_path, "w", encoding="utf-8") as f:
+                json.dump(asr_data.to_json(), f, ensure_ascii=False, indent=2)
+            logger.debug(f"ASR 结果保存到: {asr_path}")
+
         logger.info(f"转录完成: {len(asr_data.segments)} 个片段, ~{token_count} 字符")
 
     def get_output_keys(self) -> List[str]:
@@ -556,42 +592,86 @@ class TextSummarizeNode(PipelineNode):
     """文本总结节点 - 使用 LLM 生成摘要"""
 
     def run(self, ctx: PipelineContext) -> None:
-        # 获取文本内容
-        asr_data: Optional[ASRData] = ctx.get("asr_data")
-
-        if not asr_data or not asr_data.has_data():
-            ctx.set("summary_text", "无法生成摘要：无有效文本内容")
-            logger.warning("无有效文本内容用于总结")
-            return
-
-        # 拼接文本
-        full_text = "\n".join(seg.text for seg in asr_data.segments)
-
-        # 获取 LLM 配置
-        model = self.params.get("model", os.getenv("LLM_MODEL", "gpt-3.5-turbo"))
-        max_tokens = self.params.get("max_tokens", 1000)
-
-        # 构建提示词
-        prompt = self.params.get("prompt", "请总结以下视频内容的主要观点：")
-
-        messages = [
-            {"role": "system", "content": "你是一个专业的视频内容总结助手。"},
-            {"role": "user", "content": f"{prompt}\n\n{full_text[:8000]}"}  # 限制输入长度
-        ]
-
         try:
-            # 延迟导入
-            from app.core.llm.client import call_llm
+            # 获取文本内容
+            asr_data: Optional[ASRData] = ctx.get("asr_data")
 
-            response = call_llm(messages, model=model, max_tokens=max_tokens)
-            summary = response.choices[0].message.content
+            if not asr_data or not asr_data.has_data():
+                ctx.set("summary_text", "无法生成摘要：无有效文本内容")
+                logger.warning("无有效文本内容用于总结")
+                return
 
-            ctx.set("summary_text", summary)
-            logger.info(f"总结生成成功: {len(summary)} 字符")
+            # 拼接文本
+            full_text = "\n".join(seg.text for seg in asr_data.segments)
 
+            # 获取 LLM 配置
+            model = self.params.get("model", os.getenv("LLM_MODEL", "gpt-3.5-turbo"))
+            max_tokens = self.params.get("max_tokens", 1000)
+
+            # 构建提示词
+            prompt = self.params.get("prompt", "请总结以下视频内容的主要观点：")
+            try:
+                max_input_chars = int(
+                    self.params.get(
+                        "max_input_chars",
+                        os.getenv("LLM_MAX_INPUT_CHARS", "8000"),
+                    )
+                )
+            except (TypeError, ValueError):
+                max_input_chars = 8000
+
+            if max_input_chars <= 0:
+                max_input_chars = 8000
+
+            input_text = full_text[:max_input_chars]
+            if len(full_text) > max_input_chars:
+                logger.info(
+                    "总结输入过长，截断: %d -> %d 字符",
+                    len(full_text),
+                    max_input_chars,
+                )
+            else:
+                logger.info("总结输入长度: %d 字符", len(full_text))
+
+            messages = [
+                {"role": "system", "content": "你是一个专业的视频内容总结助手。"},
+                {"role": "user", "content": f"{prompt}\n\n{input_text}"},
+            ]
+
+            try:
+                # 延迟导入
+                from app.core.llm.client import call_llm
+
+                response = call_llm(messages, model=model, max_tokens=max_tokens)
+                summary = response.choices[0].message.content
+
+                ctx.set("summary_text", summary)
+
+                # 保存摘要到 bundle_dir
+                if ctx.bundle_dir:
+                    import json
+                    created_at = time.time()
+                    summary_path = Path(ctx.bundle_dir) / "summary.json"
+                    summary_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(summary_path, "w", encoding="utf-8") as f:
+                        json.dump({
+                            "summary_text": summary,
+                            "model": model,
+                            "input_chars": len(input_text),
+                            "prompt": prompt,
+                            "profile_version": PROFILE_VERSION,
+                            "created_at": created_at,
+                        }, f, ensure_ascii=False, indent=2)
+                    logger.debug(f"摘要保存到: {summary_path}")
+
+                logger.info("总结生成成功: %d 字符", len(summary))
+
+            except Exception as e:
+                logger.exception(f"LLM 调用失败: {e}")
+                ctx.set("summary_text", f"总结生成失败: {e}")
         except Exception as e:
-            logger.exception(f"LLM 调用失败: {e}")
-            ctx.set("summary_text", f"总结生成失败: {e}")
+            logger.exception(f"总结节点异常: {e}")
+            raise
 
     def get_output_keys(self) -> List[str]:
         return ["summary_text"]

@@ -7,8 +7,36 @@ from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from app.api.schemas import PipelineInputs, PipelineThresholds, TraceEvent
 from app.core.asr.asr_data import ASRData
+
+
+@dataclass
+class PipelineInputs:
+    source_type: str
+    source_url: Optional[str] = None
+    video_path: Optional[str] = None
+    subtitle_path: Optional[str] = None
+    audio_path: Optional[str] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PipelineThresholds:
+    subtitle_coverage_min: float = 0.8
+    transcript_token_per_min_min: float = 2.0
+    audio_rms_max_for_silence: float = 0.01
+
+
+@dataclass
+class TraceEvent:
+    node_id: str
+    status: str
+    elapsed_ms: Optional[int] = None
+    error: Optional[str] = None
+    output_keys: Optional[List[str]] = None
+    started_at: Optional[float] = None
+    ended_at: Optional[float] = None
+    retryable: Optional[bool] = None
 
 
 @dataclass
@@ -17,6 +45,11 @@ class PipelineContext:
 
     # 运行标识
     run_id: str = field(default_factory=lambda: f"r_{uuid.uuid4().hex}")
+
+    # 缓存相关（新增）
+    cache_key: Optional[str] = None
+    bundle_dir: Optional[str] = None
+    job_id: Optional[str] = None
 
     # 输入相关
     source_type: str = ""
@@ -104,6 +137,9 @@ class PipelineContext:
         """导出为字典（用于响应返回）"""
         result = {
             "run_id": self.run_id,
+            "cache_key": self.cache_key,
+            "bundle_dir": self.bundle_dir,
+            "job_id": self.job_id,
             "source_type": self.source_type,
             "source_url": self.source_url,
             "video_path": self.video_path,
