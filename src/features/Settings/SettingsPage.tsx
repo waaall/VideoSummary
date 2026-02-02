@@ -2,7 +2,7 @@
  * 设置页面
  */
 
-import { Card, Form, Input, InputNumber, Select, Button, Divider, message, Space } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, message, Space } from 'antd';
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '@/stores';
 import type { ThemeMode } from '@/config/theme';
@@ -12,43 +12,33 @@ export function SettingsPage() {
   const {
     themeMode,
     apiBaseUrl,
-    thresholds,
-    summaryOptions,
-    transcribeConfig,
+    apiKey,
+    pollingInterval,
+    requestTimeout,
+    uploadMaxFileSizeMb,
     setThemeMode,
     setApiBaseUrl,
-    updateThresholds,
-    updateSummaryOptions,
-    updateTranscribeConfig,
+    setApiKey,
+    setPollingInterval,
+    setRequestTimeout,
+    setUploadMaxFileSizeMb,
     resetToDefaults,
   } = useSettingsStore();
 
   const [form] = Form.useForm();
 
-  // 保存设置
   const handleSave = () => {
     const values = form.getFieldsValue();
 
     setApiBaseUrl(values.apiBaseUrl);
-    updateThresholds({
-      subtitleCoverageMin: values.subtitleCoverageMin,
-      transcriptTokenPerMinMin: values.transcriptTokenPerMinMin,
-      audioRmsMaxForSilence: values.audioRmsMaxForSilence,
-    });
-    updateSummaryOptions({
-      model: values.llmModel,
-      max_tokens: values.llmMaxTokens,
-      prompt: values.llmPrompt || undefined,
-    });
-    updateTranscribeConfig({
-      transcribe_model: values.transcribeModel,
-      transcribe_language: values.transcribeLanguage,
-    });
+    setApiKey(values.apiKey || '');
+    setPollingInterval(values.pollingInterval);
+    setRequestTimeout(values.requestTimeout);
+    setUploadMaxFileSizeMb(values.uploadMaxFileSizeMb);
 
     message.success('设置已保存');
   };
 
-  // 重置设置
   const handleReset = () => {
     resetToDefaults();
     form.resetFields();
@@ -68,18 +58,13 @@ export function SettingsPage() {
         initialValues={{
           themeMode,
           apiBaseUrl,
-          subtitleCoverageMin: thresholds.subtitleCoverageMin,
-          transcriptTokenPerMinMin: thresholds.transcriptTokenPerMinMin,
-          audioRmsMaxForSilence: thresholds.audioRmsMaxForSilence,
-          llmModel: summaryOptions.model,
-          llmMaxTokens: summaryOptions.max_tokens,
-          llmPrompt: summaryOptions.prompt || '',
-          transcribeModel: transcribeConfig.transcribe_model,
-          transcribeLanguage: transcribeConfig.transcribe_language,
+          apiKey,
+          pollingInterval,
+          requestTimeout,
+          uploadMaxFileSizeMb,
         }}
         className={styles.form}
       >
-        {/* 外观设置 */}
         <Card title="外观" className={styles.card}>
           <Form.Item label="主题模式" name="themeMode">
             <Select
@@ -94,142 +79,61 @@ export function SettingsPage() {
           </Form.Item>
         </Card>
 
-        {/* API 配置 */}
         <Card title="API 配置" className={styles.card}>
           <Form.Item
             label="API 基础地址"
             name="apiBaseUrl"
             rules={[{ required: true, message: '请输入 API 地址' }]}
           >
-            <Input placeholder="http://localhost:8000" style={{ maxWidth: 400 }} />
+            <Input placeholder="http://localhost:8765" style={{ maxWidth: 400 }} />
+          </Form.Item>
+
+          <Form.Item
+            label="x-api-key（可选）"
+            name="apiKey"
+            tooltip="仅用于限流区分，留空表示不发送"
+          >
+            <Input.Password placeholder="可选" style={{ maxWidth: 400 }} />
           </Form.Item>
         </Card>
 
-        {/* 阈值配置 */}
-        <Card title="处理阈值" className={styles.card}>
+        <Card title="请求行为" className={styles.card}>
           <div className={styles.thresholdGrid}>
             <Form.Item
-              label="字幕覆盖率最小值"
-              name="subtitleCoverageMin"
-              tooltip="字幕时长覆盖视频时长的最小比例"
+              label="轮询间隔 (ms)"
+              name="pollingInterval"
+              tooltip="任务未完成时的状态轮询间隔"
             >
-              <InputNumber
-                min={0}
-                max={1}
-                step={0.05}
-                style={{ width: '100%' }}
-              />
+              <InputNumber min={500} max={10000} step={100} style={{ width: '100%' }} />
             </Form.Item>
 
             <Form.Item
-              label="每分钟最小 Token 数"
-              name="transcriptTokenPerMinMin"
-              tooltip="转录文本每分钟的最小 Token 数量"
+              label="请求超时 (ms)"
+              name="requestTimeout"
+              tooltip="单次 API 请求的超时设置"
             >
-              <InputNumber
-                min={0}
-                step={0.5}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="静音检测 RMS 阈值"
-              name="audioRmsMaxForSilence"
-              tooltip="低于此值认为是静音"
-            >
-              <InputNumber
-                min={0}
-                max={1}
-                step={0.001}
-                style={{ width: '100%' }}
-              />
+              <InputNumber min={1000} max={600000} step={1000} style={{ width: '100%' }} />
             </Form.Item>
           </div>
         </Card>
 
-        {/* LLM 配置 */}
-        <Card title="LLM 摘要配置" className={styles.card}>
-          <div className={styles.llmGrid}>
-            <Form.Item label="默认模型" name="llmModel">
-              <Select
-                options={[
-                  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-                  { value: 'gpt-4', label: 'GPT-4' },
-                  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-                  { value: 'claude-3-haiku', label: 'Claude 3 Haiku' },
-                  { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet' },
-                  { value: 'claude-3-opus', label: 'Claude 3 Opus' },
-                ]}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
-            <Form.Item label="最大 Token 数" name="llmMaxTokens">
-              <InputNumber
-                min={100}
-                max={8000}
-                step={100}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </div>
-
-          <Form.Item label="自定义 Prompt（可选）" name="llmPrompt">
-            <Input.TextArea
-              placeholder="留空使用系统默认 Prompt"
-              rows={4}
-              style={{ resize: 'vertical' }}
-            />
+        <Card title="上传限制" className={styles.card}>
+          <Form.Item
+            label="最大上传文件大小 (MB)"
+            name="uploadMaxFileSizeMb"
+            tooltip="仅用于前端校验，后端限制以服务端配置为准"
+          >
+            <InputNumber min={10} max={10240} step={50} style={{ width: 240 }} />
           </Form.Item>
         </Card>
 
-        {/* 转录配置 */}
-        <Card title="语音转录配置" className={styles.card}>
-          <div className={styles.transcribeGrid}>
-            <Form.Item label="转录模型" name="transcribeModel">
-              <Select
-                options={[
-                  { value: 'faster_whisper', label: 'Faster Whisper' },
-                  { value: 'whisper_api', label: 'Whisper API' },
-                  { value: 'whisper_cpp', label: 'Whisper.cpp' },
-                ]}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-
-            <Form.Item label="默认语言" name="transcribeLanguage">
-              <Select
-                options={[
-                  { value: 'zh', label: '中文' },
-                  { value: 'en', label: 'English' },
-                  { value: 'ja', label: '日本語' },
-                  { value: 'ko', label: '한국어' },
-                  { value: 'auto', label: '自动检测' },
-                ]}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </div>
-        </Card>
-
-        <Divider />
-
-        {/* 操作按钮 */}
         <div className={styles.actions}>
           <Space>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={handleSave}
-            >
-              保存设置
-            </Button>
-            <Button
-              icon={<UndoOutlined />}
-              onClick={handleReset}
-            >
+            <Button icon={<UndoOutlined />} onClick={handleReset}>
               恢复默认
+            </Button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
+              保存设置
             </Button>
           </Space>
         </div>

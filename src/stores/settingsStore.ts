@@ -5,20 +5,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ThemeMode } from '@/config/theme';
-import {
-  apiConfig,
-  defaultThresholds,
-  defaultSummaryOptions,
-  defaultTranscribeConfig,
-} from '@/config';
-import type { SummaryOptions, TranscribeConfig } from '@/types/api';
-
-// 阈值配置类型
-interface Thresholds {
-  subtitleCoverageMin: number;
-  transcriptTokenPerMinMin: number;
-  audioRmsMaxForSilence: number;
-}
+import { apiConfig, defaultUiSettings } from '@/config';
 
 interface SettingsState {
   // 主题设置
@@ -26,22 +13,22 @@ interface SettingsState {
 
   // API 配置
   apiBaseUrl: string;
+  apiKey: string;
 
-  // 阈值配置
-  thresholds: Thresholds;
+  // 请求行为
+  pollingInterval: number;
+  requestTimeout: number;
 
-  // 摘要配置
-  summaryOptions: SummaryOptions;
-
-  // 转录配置
-  transcribeConfig: TranscribeConfig;
+  // 上传配置（前端校验）
+  uploadMaxFileSizeMb: number;
 
   // Actions
   setThemeMode: (mode: ThemeMode) => void;
   setApiBaseUrl: (url: string) => void;
-  updateThresholds: (thresholds: Partial<Thresholds>) => void;
-  updateSummaryOptions: (config: Partial<SummaryOptions>) => void;
-  updateTranscribeConfig: (config: Partial<TranscribeConfig>) => void;
+  setApiKey: (key: string) => void;
+  setPollingInterval: (interval: number) => void;
+  setRequestTimeout: (timeout: number) => void;
+  setUploadMaxFileSizeMb: (sizeMb: number) => void;
   resetToDefaults: () => void;
 }
 
@@ -49,21 +36,10 @@ interface SettingsState {
 const defaultState = {
   themeMode: 'system' as ThemeMode,
   apiBaseUrl: apiConfig.baseUrl,
-  thresholds: {
-    subtitleCoverageMin: defaultThresholds.subtitleCoverageMin,
-    transcriptTokenPerMinMin: defaultThresholds.transcriptTokenPerMinMin,
-    audioRmsMaxForSilence: defaultThresholds.audioRmsMaxForSilence,
-  },
-  summaryOptions: {
-    model: defaultSummaryOptions.model,
-    max_tokens: defaultSummaryOptions.max_tokens,
-    prompt: defaultSummaryOptions.prompt,
-  },
-  transcribeConfig: {
-    transcribe_model: defaultTranscribeConfig.transcribe_model,
-    transcribe_language: defaultTranscribeConfig.transcribe_language,
-    need_word_time_stamp: defaultTranscribeConfig.need_word_time_stamp,
-  },
+  apiKey: '',
+  pollingInterval: defaultUiSettings.pollingInterval,
+  requestTimeout: defaultUiSettings.requestTimeout,
+  uploadMaxFileSizeMb: defaultUiSettings.uploadMaxFileSizeMb,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -78,33 +54,25 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       setApiBaseUrl: (url) => set({ apiBaseUrl: url }),
+      setApiKey: (key) => set({ apiKey: key }),
+      setPollingInterval: (interval) => set({ pollingInterval: interval }),
+      setRequestTimeout: (timeout) => set({ requestTimeout: timeout }),
+      setUploadMaxFileSizeMb: (sizeMb) => set({ uploadMaxFileSizeMb: sizeMb }),
 
-      updateThresholds: (thresholds) =>
-        set((state) => ({
-          thresholds: { ...state.thresholds, ...thresholds },
-        })),
-
-      updateSummaryOptions: (config) =>
-        set((state) => ({
-          summaryOptions: { ...state.summaryOptions, ...config },
-        })),
-
-      updateTranscribeConfig: (config) =>
-        set((state) => ({
-          transcribeConfig: { ...state.transcribeConfig, ...config },
-        })),
-
-      resetToDefaults: () => set(defaultState),
+      resetToDefaults: () => {
+        set(defaultState);
+        applyTheme(defaultState.themeMode);
+      },
     }),
     {
       name: 'video-summary-settings',
-      // 只持久化部分状态
       partialize: (state) => ({
         themeMode: state.themeMode,
         apiBaseUrl: state.apiBaseUrl,
-        thresholds: state.thresholds,
-        summaryOptions: state.summaryOptions,
-        transcribeConfig: state.transcribeConfig,
+        apiKey: state.apiKey,
+        pollingInterval: state.pollingInterval,
+        requestTimeout: state.requestTimeout,
+        uploadMaxFileSizeMb: state.uploadMaxFileSizeMb,
       }),
     }
   )
@@ -149,4 +117,15 @@ export function setupThemeListener() {
 
   mediaQuery.addEventListener('change', handleChange);
   return () => mediaQuery.removeEventListener('change', handleChange);
+}
+
+/**
+ * 获取当前上传大小限制（字节）
+ */
+export function getUploadMaxFileSizeBytes() {
+  const { uploadMaxFileSizeMb } = useSettingsStore.getState();
+  const sizeMb = Number.isFinite(uploadMaxFileSizeMb) && uploadMaxFileSizeMb > 0
+    ? uploadMaxFileSizeMb
+    : defaultUiSettings.uploadMaxFileSizeMb;
+  return Math.round(sizeMb * 1024 * 1024);
 }

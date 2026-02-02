@@ -3,7 +3,7 @@
  */
 
 import apiClient from './client';
-import type { UploadResponse } from '@/types/pipeline';
+import type { UploadResponse } from '@/types/upload';
 
 /**
  * 上传本地文件

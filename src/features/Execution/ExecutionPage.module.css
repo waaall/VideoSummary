@@ -78,6 +78,7 @@
   padding: 2px 8px;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
+  word-break: break-all;
 }
 
 .statusMeta {

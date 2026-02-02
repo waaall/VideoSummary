@@ -13,11 +13,10 @@
   animation: slideUp var(--transition-normal) forwards;
 }
 
-/* 状态区域 */
 .statusSection {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .statusHeader {
@@ -28,9 +27,19 @@
   gap: var(--spacing-sm);
 }
 
+.statusTags {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .statusTag {
   font-size: 0.875rem;
   padding: 4px 12px;
+}
+
+.cacheTag {
+  font-size: 0.75rem;
 }
 
 .runId {
@@ -45,94 +54,19 @@
   border-radius: var(--radius-sm);
 }
 
-/* 追踪列表 */
-.traceList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.traceItem {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-bg-tertiary);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  transition: all var(--transition-fast);
-}
-
-.traceIcon {
-  width: 20px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.traceName {
-  flex: 1;
-  color: var(--color-text-primary);
-}
-
-.traceStatus {
-  color: var(--color-text-tertiary);
+.cacheKey {
   font-size: 0.75rem;
+  color: var(--color-text-tertiary);
 }
 
-.traceTime {
+.cacheKey code {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  min-width: 60px;
-  text-align: right;
+  background: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  word-break: break-all;
 }
 
-/* 追踪状态颜色 */
-.traceItem.completed {
-  border-left: 3px solid var(--color-success);
-}
-
-.traceItem.completed .traceIcon {
-  color: var(--color-success);
-}
-
-.traceItem.failed {
-  border-left: 3px solid var(--color-error);
-}
-
-.traceItem.failed .traceIcon {
-  color: var(--color-error);
-}
-
-.traceItem.skipped {
-  border-left: 3px solid var(--color-text-tertiary);
-  opacity: 0.6;
-}
-
-.traceItem.started {
-  border-left: 3px solid var(--color-accent-primary);
-}
-
-.traceItem.started .traceIcon {
-  color: var(--color-accent-primary);
-}
-
-.traceItem.pending {
-  border-left: 3px solid var(--color-accent-primary);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.traceItem.pending .traceIcon {
-  color: var(--color-accent-primary);
-}
-
-.progressText {
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  text-align: center;
-}
-
-/* 错误区域 */
 .errorSection {
   padding: var(--spacing-md);
   background: rgba(239, 68, 68, 0.1);
@@ -155,7 +89,6 @@
   word-break: break-word;
 }
 
-/* 结果区域 */
 .resultSection {
   display: flex;
   flex-direction: column;
@@ -184,7 +117,6 @@
   white-space: pre-wrap;
 }
 
-/* 操作按钮 */
 .actions {
   display: flex;
   gap: var(--spacing-md);
@@ -192,7 +124,6 @@
   border-top: 1px solid var(--color-border-light);
 }
 
-/* 动画 */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -201,14 +132,5 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
   }
 }

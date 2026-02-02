@@ -68,43 +68,10 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
- * 节点类型显示名称映射
+ * 格式化时间戳（秒/毫秒 -> 本地时间字符串）
  */
-const nodeTypeNames: Record<string, string> = {
-  InputNode: '输入',
-  FetchMetadataNode: '获取元数据',
-  DownloadSubtitleNode: '下载字幕',
-  DownloadVideoNode: '下载视频',
-  ParseSubtitleNode: '解析字幕',
-  ValidateSubtitleNode: '验证字幕',
-  ExtractAudioNode: '提取音频',
-  DetectSilenceNode: '检测静音',
-  TranscribeNode: '语音转录',
-  TextSummarizeNode: '生成摘要',
-  WarningNode: '警告',
-};
-
-/**
- * 获取节点类型的显示名称
- */
-export function getNodeTypeName(type: string): string {
-  return nodeTypeNames[type] || type;
-}
-
-/**
- * 节点状态显示名称
- */
-const statusNames: Record<string, string> = {
-  pending: '等待中',
-  started: '执行中',
-  completed: '已完成',
-  failed: '失败',
-  skipped: '已跳过',
-};
-
-/**
- * 获取状态的显示名称
- */
-export function getStatusName(status: string): string {
-  return statusNames[status] || status;
+export function formatTimestamp(timestamp?: number | null): string {
+  if (!timestamp) return '-';
+  const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+  return new Date(ms).toLocaleString();
 }

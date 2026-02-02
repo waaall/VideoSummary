@@ -3,13 +3,14 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Button, Space, Tag, Tooltip, message } from 'antd';
+import { Button, Space, Tag, Tooltip, message, Collapse, Switch } from 'antd';
 import {
   PlayCircleOutlined,
   FileTextOutlined,
   AudioOutlined,
   VideoCameraOutlined,
   DeleteOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { FileUploader } from '@/components/common';
 import { uploadLocalFile } from '@/api/upload';
@@ -23,15 +24,10 @@ interface UploadedFile {
 }
 
 interface LocalUploadProps {
-  onSubmit: (files: {
-    subtitle_file_id?: string;
-    audio_file_id?: string;
-    video_file_id?: string;
-  }) => void;
+  onSubmit: (fileId: string, refresh: boolean) => void;
   loading?: boolean;
 }
 
-// 文件类型图标
 const categoryIcons: Record<FileCategory, React.ReactNode> = {
   subtitle: <FileTextOutlined />,
   audio: <AudioOutlined />,
@@ -39,7 +35,6 @@ const categoryIcons: Record<FileCategory, React.ReactNode> = {
   unknown: null,
 };
 
-// 文件类型颜色
 const categoryColors: Record<FileCategory, string> = {
   subtitle: 'cyan',
   audio: 'purple',
@@ -47,7 +42,6 @@ const categoryColors: Record<FileCategory, string> = {
   unknown: 'default',
 };
 
-// 文件类型显示名
 const categoryNames: Record<FileCategory, string> = {
   subtitle: '字幕',
   audio: '音频',
@@ -56,58 +50,31 @@ const categoryNames: Record<FileCategory, string> = {
 };
 
 export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [refresh, setRefresh] = useState(false);
 
-  // 处理上传成功
   const handleUploadSuccess = useCallback(
     (fileId: string, category: FileCategory, originalName: string) => {
-      // 检查是否已有同类型文件
-      const existingIndex = uploadedFiles.findIndex((f) => f.category === category);
-
-      if (existingIndex >= 0) {
-        // 替换同类型文件
-        setUploadedFiles((prev) => {
-          const updated = [...prev];
-          updated[existingIndex] = { fileId, category, name: originalName };
-          return updated;
-        });
-        message.info(`已替换之前的${categoryNames[category]}文件`);
-      } else {
-        // 添加新文件
-        setUploadedFiles((prev) => [...prev, { fileId, category, name: originalName }]);
-      }
+      setUploadedFile({ fileId, category, name: originalName });
+      message.info(`已选择${categoryNames[category]}文件`);
     },
-    [uploadedFiles]
+    []
   );
 
-  // 删除已上传文件
-  const handleRemoveFile = useCallback((fileId: string) => {
-    setUploadedFiles((prev) => prev.filter((f) => f.fileId !== fileId));
+  const handleRemoveFile = useCallback(() => {
+    setUploadedFile(null);
   }, []);
 
-  // 提交处理
   const handleSubmit = useCallback(() => {
-    if (uploadedFiles.length === 0) {
+    if (!uploadedFile) {
       message.error('请先上传文件');
       return;
     }
 
-    const files: {
-      subtitle_file_id?: string;
-      audio_file_id?: string;
-      video_file_id?: string;
-    } = {};
+    onSubmit(uploadedFile.fileId, refresh);
+  }, [uploadedFile, onSubmit, refresh]);
 
-    for (const file of uploadedFiles) {
-      if (file.category === 'subtitle') files.subtitle_file_id = file.fileId;
-      if (file.category === 'audio') files.audio_file_id = file.fileId;
-      if (file.category === 'video') files.video_file_id = file.fileId;
-    }
-
-    onSubmit(files);
-  }, [uploadedFiles, onSubmit]);
-
-  // 上传函数封装
   const handleUpload = useCallback(
     async (file: File, onProgress: (percent: number) => void) => {
       const response = await uploadLocalFile(file, onProgress);
@@ -116,9 +83,28 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
     []
   );
 
+  const advancedItems = [
+    {
+      key: 'advanced',
+      label: (
+        <span className={styles.advancedLabel}>
+          <SettingOutlined />
+          缓存策略
+        </span>
+      ),
+      children: (
+        <div className={styles.advancedForm}>
+          <Space size="middle">
+            <Switch checked={refresh} onChange={setRefresh} />
+            <span>强制重新生成（忽略缓存）</span>
+          </Space>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className={styles.container}>
-      {/* 文件上传区 */}
       <FileUploader
         onUploadSuccess={handleUploadSuccess}
         uploadFn={handleUpload}
@@ -126,43 +112,47 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
         hint="可上传字幕（.srt, .ass, .vtt）、音频（.mp3, .wav）或视频文件（.mp4, .mkv）"
       />
 
-      {/* 已上传文件列表 */}
-      {uploadedFiles.length > 0 && (
+      {uploadedFile && (
         <div className={styles.fileList}>
           <div className={styles.fileListHeader}>
             <span>已上传文件</span>
-            <span className={styles.fileCount}>{uploadedFiles.length} 个</span>
+            <span className={styles.fileCount}>1 个</span>
           </div>
 
           <div className={styles.files}>
-            {uploadedFiles.map((file) => (
-              <div key={file.fileId} className={styles.fileItem}>
-                <Tag
-                  icon={categoryIcons[file.category]}
-                  color={categoryColors[file.category]}
-                  className={styles.fileTag}
-                >
-                  {categoryNames[file.category]}
-                </Tag>
+            <div className={styles.fileItem}>
+              <Tag
+                icon={categoryIcons[uploadedFile.category]}
+                color={categoryColors[uploadedFile.category]}
+                className={styles.fileTag}
+              >
+                {categoryNames[uploadedFile.category]}
+              </Tag>
 
-                <span className={styles.fileName}>{file.name}</span>
+              <span className={styles.fileName}>{uploadedFile.name}</span>
 
-                <Tooltip title="移除">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleRemoveFile(file.fileId)}
-                    className={styles.removeButton}
-                  />
-                </Tooltip>
-              </div>
-            ))}
+              <Tooltip title="移除">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={handleRemoveFile}
+                  className={styles.removeButton}
+                />
+              </Tooltip>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 提交按钮 */}
+      <Collapse
+        items={advancedItems}
+        ghost
+        activeKey={showAdvanced ? ['advanced'] : []}
+        onChange={(keys) => setShowAdvanced(keys.includes('advanced'))}
+        className={styles.advancedCollapse}
+      />
+
       <Space className={styles.actions}>
         <Button
           type="primary"
@@ -170,15 +160,15 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
           icon={<PlayCircleOutlined />}
           onClick={handleSubmit}
           loading={loading}
-          disabled={uploadedFiles.length === 0}
+          disabled={!uploadedFile}
         >
           开始处理
         </Button>
 
-        {uploadedFiles.length > 0 && (
+        {uploadedFile && (
           <Button
             size="large"
-            onClick={() => setUploadedFiles([])}
+            onClick={handleRemoveFile}
             disabled={loading}
           >
             清空文件
@@ -186,10 +176,9 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
         )}
       </Space>
 
-      {/* 提示信息 */}
       <p className={styles.tip}>
         <strong>提示：</strong>
-        优先处理字幕文件；若无字幕则使用音频转录；若提供视频则自动提取音频。
+        后端会优先使用字幕文件；若上传音频或视频，将自动进行转写后摘要。
       </p>
     </div>
   );

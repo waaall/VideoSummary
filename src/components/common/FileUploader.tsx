@@ -8,6 +8,7 @@ import { Upload, message, Progress } from 'antd';
 import { InboxOutlined, FileOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { RcFile } from 'antd/es/upload/interface';
 import { uploadConfig } from '@/config';
+import { useSettingsStore } from '@/stores';
 import { validateFile, getFileCategory, type FileCategory } from '@/utils/validators';
 import { formatFileSize } from '@/utils/formatters';
 import styles from './FileUploader.module.css';
@@ -69,6 +70,8 @@ export function FileUploader({
   disabled = false,
   hint,
 }: FileUploaderProps) {
+  const uploadMaxFileSizeMb = useSettingsStore((state) => state.uploadMaxFileSizeMb);
+  const maxFileSizeBytes = Math.round(uploadMaxFileSizeMb * 1024 * 1024);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
@@ -175,7 +178,7 @@ export function FileUploader({
       </p>
       <p className={styles.dragText}>点击或拖拽文件到此处上传</p>
       <p className={styles.dragHint}>
-        {hint || `支持 ${typeDescription}，最大 ${formatFileSize(uploadConfig.maxFileSize)}`}
+        {hint || `支持 ${typeDescription}，最大 ${formatFileSize(maxFileSizeBytes)}`}
       </p>
     </Dragger>
   );

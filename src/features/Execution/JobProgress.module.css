@@ -1,0 +1,7 @@
+/**
+ * 任务进度样式
+ */
+
+.container {
+  padding: var(--spacing-lg);
+}

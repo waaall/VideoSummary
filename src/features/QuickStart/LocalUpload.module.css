@@ -96,3 +96,20 @@
 .tip strong {
   color: var(--color-text-secondary);
 }
+
+/* 高级选项 */
+.advancedCollapse {
+  margin: 0 -var(--spacing-sm);
+}
+
+.advancedLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.advancedForm {
+  padding: var(--spacing-md) 0;
+}

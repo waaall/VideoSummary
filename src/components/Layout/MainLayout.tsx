@@ -19,7 +19,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       </main>
       <footer className={styles.footer}>
         <span className={styles.footerText}>
-          VideoSummary · 基于 DAG 管线的智能视频摘要
+          VideoSummary · 智能视频摘要工具
         </span>
       </footer>
     </div>

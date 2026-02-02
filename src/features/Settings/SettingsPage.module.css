@@ -48,21 +48,6 @@
   gap: var(--spacing-md);
 }
 
-/* LLM 配置网格 */
-.llmGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-/* 转录配置网格 */
-.transcribeGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-md);
-}
-
 /* 操作按钮 */
 .actions {
   display: flex;
@@ -72,9 +57,7 @@
 
 /* 响应式 */
 @media (max-width: 640px) {
-  .thresholdGrid,
-  .llmGrid,
-  .transcribeGrid {
+  .thresholdGrid {
     grid-template-columns: 1fr;
   }
 

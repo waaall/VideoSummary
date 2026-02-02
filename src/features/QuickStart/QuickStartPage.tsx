@@ -1,6 +1,6 @@
 /**
  * 快速开始页面
- * 提供 URL 和本地文件两种自动处理流程入口
+ * 提供 URL 和本地文件两种处理入口
  */
 
 import { useState, useCallback } from 'react';
@@ -9,10 +9,7 @@ import { LinkOutlined, UploadOutlined } from '@ant-design/icons';
 import { UrlInput } from './UrlInput';
 import { LocalUpload } from './LocalUpload';
 import { ResultDisplay } from './ResultDisplay';
-import { runAutoUrl, runAutoLocal } from '@/api/pipeline';
-import { usePipelineExecution } from '@/hooks';
-import { useSettingsStore } from '@/stores';
-import type { PipelineOptions } from '@/types/api';
+import { useSummaryJob } from '@/hooks';
 import styles from './QuickStartPage.module.css';
 
 type TabKey = 'url' | 'local';
@@ -20,19 +17,18 @@ type TabKey = 'url' | 'local';
 export function QuickStartPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('url');
   const [submitting, setSubmitting] = useState(false);
-  const thresholds = useSettingsStore((state) => state.thresholds);
-  const transcribeConfig = useSettingsStore((state) => state.transcribeConfig);
 
   const {
     status,
-    runId,
+    jobId,
     summaryText,
-    trace,
+    cacheStatus,
+    cacheKey,
     error,
     isRunning,
-    handleExecutionResponse,
+    submitSummary,
     reset,
-  } = usePipelineExecution({
+  } = useSummaryJob({
     onComplete: () => {
       message.success('处理完成');
       setSubmitting(false);
@@ -43,78 +39,46 @@ export function QuickStartPage() {
     },
   });
 
-  // 处理 URL 提交
   const handleUrlSubmit = useCallback(
-    async (url: string, options: PipelineOptions) => {
+    async (url: string, refresh: boolean) => {
       setSubmitting(true);
       reset();
 
       try {
-        const apiThresholds = {
-          subtitle_coverage_min: thresholds.subtitleCoverageMin,
-          transcript_token_per_min_min: thresholds.transcriptTokenPerMinMin,
-          audio_rms_max_for_silence: thresholds.audioRmsMaxForSilence,
-        };
-
-        const mergedOptions: PipelineOptions = {
-          transcribe_config: transcribeConfig,
-          ...options,
-        };
-
-        const response = await runAutoUrl({
-          inputs: { source_url: url },
-          options: mergedOptions,
-          thresholds: apiThresholds,
+        await submitSummary({
+          source_type: 'url',
+          source_url: url,
+          refresh,
         });
-
-        handleExecutionResponse(response.data);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);
         setSubmitting(false);
       }
     },
-    [reset, handleExecutionResponse, thresholds, transcribeConfig]
+    [reset, submitSummary]
   );
 
-  // 处理本地文件提交
   const handleLocalSubmit = useCallback(
-    async (files: {
-      subtitle_file_id?: string;
-      audio_file_id?: string;
-      video_file_id?: string;
-    }) => {
+    async (fileId: string, refresh: boolean) => {
       setSubmitting(true);
       reset();
 
       try {
-        const apiThresholds = {
-          subtitle_coverage_min: thresholds.subtitleCoverageMin,
-          transcript_token_per_min_min: thresholds.transcriptTokenPerMinMin,
-          audio_rms_max_for_silence: thresholds.audioRmsMaxForSilence,
-        };
-
-        const response = await runAutoLocal({
-          inputs: {
-            ...files,
-          },
-          thresholds: apiThresholds,
-          options: {
-            transcribe_config: transcribeConfig,
-          },
+        await submitSummary({
+          source_type: 'local',
+          file_id: fileId,
+          refresh,
         });
-
-        handleExecutionResponse(response.data);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);
         setSubmitting(false);
       }
     },
-    [reset, handleExecutionResponse, thresholds, transcribeConfig]
+    [reset, submitSummary]
   );
 
-  // Tab 配置
   const tabItems = [
     {
       key: 'url',
@@ -150,7 +114,6 @@ export function QuickStartPage() {
 
   return (
     <div className={styles.page}>
-      {/* 页面标题 */}
       <div className={styles.header}>
         <h1 className={styles.title}>视频摘要</h1>
         <p className={styles.description}>
@@ -158,7 +121,6 @@ export function QuickStartPage() {
         </p>
       </div>
 
-      {/* 输入区域 */}
       <div className={styles.inputSection}>
         <Tabs
           activeKey={activeTab}
@@ -168,12 +130,12 @@ export function QuickStartPage() {
         />
       </div>
 
-      {/* 结果展示 */}
       <ResultDisplay
         status={status}
-        runId={runId}
+        jobId={jobId}
         summaryText={summaryText}
-        trace={trace}
+        cacheStatus={cacheStatus}
+        cacheKey={cacheKey}
         error={error}
         onReset={reset}
       />

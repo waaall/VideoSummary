@@ -2,7 +2,7 @@
  * 结果展示组件
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { Button, Space, message, Tooltip, Tag } from 'antd';
 import {
   CopyOutlined,
@@ -14,46 +14,69 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import type { TraceEvent, ExecutionStatus } from '@/types/pipeline';
-import { formatDuration, getNodeTypeName, getStatusName } from '@/utils/formatters';
+import type { SummaryStatus } from '@/types/summary';
 import styles from './ResultDisplay.module.css';
 
+type UiStatus = 'idle' | SummaryStatus;
+
 interface ResultDisplayProps {
-  status: ExecutionStatus;
-  runId: string | null;
+  status: UiStatus;
+  jobId: string | null;
+  cacheStatus: string | null;
+  cacheKey: string | null;
   summaryText: string | null;
-  trace: TraceEvent[];
   error: string | null;
   onReset: () => void;
 }
 
-// 状态图标
 const statusIcons: Record<string, React.ReactNode> = {
-  queued: <LoadingOutlined spin />,
+  pending: <LoadingOutlined spin />,
   running: <LoadingOutlined spin />,
   completed: <CheckCircleOutlined />,
   failed: <CloseCircleOutlined />,
 };
 
-// 状态颜色
 const statusColors: Record<string, string> = {
-  queued: 'processing',
+  pending: 'processing',
   running: 'processing',
   completed: 'success',
   failed: 'error',
 };
 
+const statusTexts: Record<string, string> = {
+  pending: '排队中',
+  running: '处理中',
+  completed: '已完成',
+  failed: '执行失败',
+};
+
+const cacheStatusColors: Record<string, string> = {
+  pending: 'processing',
+  running: 'processing',
+  completed: 'success',
+  failed: 'error',
+  unknown: 'default',
+};
+
+const cacheStatusTexts: Record<string, string> = {
+  pending: '排队中',
+  running: '处理中',
+  completed: '已完成',
+  failed: '失败',
+  unknown: '未知',
+};
+
 export function ResultDisplay({
   status,
-  runId,
+  jobId,
+  cacheStatus,
+  cacheKey,
   summaryText,
-  trace,
   error,
   onReset,
 }: ResultDisplayProps) {
   const navigate = useNavigate();
 
-  // 复制摘要
   const handleCopy = useCallback(async () => {
     if (!summaryText) return;
 
@@ -65,7 +88,6 @@ export function ResultDisplay({
     }
   }, [summaryText]);
 
-  // 导出 Markdown
   const handleExportMarkdown = useCallback(() => {
     if (!summaryText) return;
 
@@ -75,104 +97,60 @@ export function ResultDisplay({
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `summary-${runId || 'export'}.md`;
+    link.download = `summary-${jobId || 'export'}.md`;
     link.click();
 
     URL.revokeObjectURL(url);
     message.success('已导出 Markdown 文件');
-  }, [summaryText, runId]);
+  }, [summaryText, jobId]);
 
-  // 查看详细追踪
-  const handleViewTrace = useCallback(() => {
-    if (runId) {
-      navigate(`/execution/${runId}`);
+  const handleViewDetail = useCallback(() => {
+    if (jobId) {
+      navigate(`/execution/${jobId}`);
     }
-  }, [runId, navigate]);
+  }, [jobId, navigate]);
 
-  // 计算进度
-  const progress = useMemo(() => {
-    if (trace.length === 0) return { completed: 0, total: 0 };
-
-    const completed = trace.filter(
-      (t) => t.status === 'completed' || t.status === 'skipped'
-    ).length;
-
-    return { completed, total: trace.length };
-  }, [trace]);
-
-  // 如果是空闲状态，不显示
   if (status === 'idle') {
     return null;
   }
 
   return (
     <div className={styles.container}>
-      {/* 执行状态 */}
       <div className={styles.statusSection}>
         <div className={styles.statusHeader}>
-          <Tag
-            icon={statusIcons[status]}
-            color={statusColors[status]}
-            className={styles.statusTag}
-          >
-            {status === 'queued'
-              ? '排队中'
-              : status === 'running'
-                ? '执行中'
-                : status === 'completed'
-                  ? '已完成'
-                  : '执行失败'}
-          </Tag>
+          <div className={styles.statusTags}>
+            <Tag
+              icon={statusIcons[status]}
+              color={statusColors[status]}
+              className={styles.statusTag}
+            >
+              {statusTexts[status]}
+            </Tag>
 
-          {runId && (
+            {cacheStatus && (
+              <Tag
+                color={cacheStatusColors[cacheStatus] || 'default'}
+                className={styles.cacheTag}
+              >
+                缓存：{cacheStatusTexts[cacheStatus] || cacheStatus}
+              </Tag>
+            )}
+          </div>
+
+          {jobId && (
             <span className={styles.runId}>
-              Run ID: <code>{runId}</code>
+              Job ID: <code>{jobId}</code>
             </span>
           )}
         </div>
 
-        {/* 执行追踪 */}
-        <div className={styles.traceList}>
-          {trace.map((event, index) => (
-            <div
-              key={`${event.node_id}-${index}`}
-              className={`${styles.traceItem} ${styles[event.status]}`}
-            >
-              <span className={styles.traceIcon}>
-                {event.status === 'completed' && '✓'}
-                {event.status === 'failed' && '✗'}
-                {event.status === 'skipped' && '○'}
-                {event.status === 'started' && '●'}
-              </span>
-              <span className={styles.traceName}>{getNodeTypeName(event.node_id)}</span>
-              <span className={styles.traceStatus}>{getStatusName(event.status)}</span>
-              <span className={styles.traceTime}>
-                {formatDuration(event.elapsed_ms ?? 0)}
-              </span>
-            </div>
-          ))}
-
-          {(status === 'queued' || status === 'running') && (
-            <div className={`${styles.traceItem} ${styles.pending}`}>
-              <span className={styles.traceIcon}>
-                <LoadingOutlined spin />
-              </span>
-              <span className={styles.traceName}>
-                {status === 'queued' ? '等待调度...' : '处理中...'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* 进度指示 */}
-        {status === 'running' && progress.total > 0 && (
-          <div className={styles.progressText}>
-            已完成 {progress.completed} / {progress.total} 步骤
+        {cacheKey && (
+          <div className={styles.cacheKey}>
+            Cache Key: <code>{cacheKey}</code>
           </div>
         )}
       </div>
 
-      {/* 错误信息 */}
       {error && (
         <div className={styles.errorSection}>
           <div className={styles.errorTitle}>错误信息</div>
@@ -180,32 +158,19 @@ export function ResultDisplay({
         </div>
       )}
 
-      {/* 摘要结果 */}
       {summaryText && (
         <div className={styles.resultSection}>
           <div className={styles.resultHeader}>
             <span className={styles.resultTitle}>摘要结果</span>
             <Space>
               <Tooltip title="复制">
-                <Button
-                  type="text"
-                  icon={<CopyOutlined />}
-                  onClick={handleCopy}
-                />
+                <Button type="text" icon={<CopyOutlined />} onClick={handleCopy} />
               </Tooltip>
               <Tooltip title="导出 Markdown">
-                <Button
-                  type="text"
-                  icon={<FileMarkdownOutlined />}
-                  onClick={handleExportMarkdown}
-                />
+                <Button type="text" icon={<FileMarkdownOutlined />} onClick={handleExportMarkdown} />
               </Tooltip>
-              <Tooltip title="查看详细追踪">
-                <Button
-                  type="text"
-                  icon={<EyeOutlined />}
-                  onClick={handleViewTrace}
-                />
+              <Tooltip title="查看任务详情">
+                <Button type="text" icon={<EyeOutlined />} onClick={handleViewDetail} />
               </Tooltip>
             </Space>
           </div>
@@ -214,19 +179,18 @@ export function ResultDisplay({
         </div>
       )}
 
-      {/* 操作按钮 */}
       <div className={styles.actions}>
         <Button
           icon={<ReloadOutlined />}
           onClick={onReset}
-          disabled={status === 'running' || status === 'queued'}
+          disabled={status === 'pending' || status === 'running'}
         >
           重新开始
         </Button>
 
-        {runId && status !== 'running' && status !== 'queued' && (
-          <Button type="primary" onClick={handleViewTrace}>
-            查看详细执行记录
+        {jobId && status !== 'pending' && status !== 'running' && (
+          <Button type="primary" onClick={handleViewDetail}>
+            查看任务详情
           </Button>
         )}
       </div>

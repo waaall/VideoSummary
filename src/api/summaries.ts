@@ -1,0 +1,44 @@
+/**
+ * 摘要/任务相关 API
+ */
+
+import apiClient from './client';
+import type {
+  SummaryCreateRequest,
+  SummaryCreateResponse,
+  JobStatusResponse,
+  CacheLookupRequest,
+  CacheLookupResponse,
+  CacheEntryResponse,
+  HealthResponse,
+} from '@/types/summary';
+
+/**
+ * 健康检查
+ */
+export const checkHealth = () =>
+  apiClient.get<HealthResponse>('/health');
+
+/**
+ * 创建摘要任务（缓存优先）
+ */
+export const createSummary = (request: SummaryCreateRequest) =>
+  apiClient.post<SummaryCreateResponse>('/summaries', request);
+
+/**
+ * 查询任务状态
+ */
+export const getJobStatus = (jobId: string) =>
+  apiClient.get<JobStatusResponse>(`/jobs/${jobId}`);
+
+/**
+ * 缓存预查
+ */
+export const lookupCache = (request: CacheLookupRequest) =>
+  apiClient.post<CacheLookupResponse>('/cache/lookup', request);
+
+/**
+ * 缓存详情
+ */
+export const getCacheEntry = (cacheKey: string) =>
+  apiClient.get<CacheEntryResponse>(`/cache/${cacheKey}`);

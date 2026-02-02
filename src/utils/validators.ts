@@ -3,6 +3,7 @@
  */
 
 import { uploadConfig } from '@/config';
+import { getUploadMaxFileSizeBytes } from '@/stores';
 
 /**
  * 验证 URL 格式
@@ -84,7 +85,7 @@ export function isValidSubtitleFile(filename: string): boolean {
  * 验证文件大小
  */
 export function isValidFileSize(size: number): boolean {
-  return size > 0 && size <= uploadConfig.maxFileSize;
+  return size > 0 && size <= getUploadMaxFileSizeBytes();
 }
 
 /**
@@ -105,7 +106,7 @@ export function getFileCategory(filename: string): FileCategory {
 export function validateFile(file: File): { valid: boolean; error?: string } {
   // 检查文件大小
   if (!isValidFileSize(file.size)) {
-    const maxSizeMB = uploadConfig.maxFileSize / (1024 * 1024);
+    const maxSizeMB = Math.round(getUploadMaxFileSizeBytes() / (1024 * 1024));
     return {
       valid: false,
       error: `文件大小超过限制（最大 ${maxSizeMB}MB）`,
