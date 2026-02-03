@@ -83,9 +83,10 @@ def _resolve_source(
     file_id: str | None,
     file_hash: str | None,
     persist_file_hash: bool = True,
-) -> tuple[str, str | None, str]:
+) -> tuple[str, str | None, str, str | None]:
     """Resolve source_ref, file_hash, cache_key for URL/local inputs."""
     store = get_store()
+    source_name: str | None = None
 
     resolved_file_hash = file_hash
     verified_by_file_id = False
@@ -98,6 +99,7 @@ def _resolve_source(
             try:
                 storage = get_file_storage()
                 uploaded = storage.get(file_id)
+                source_name = uploaded.original_name
                 if uploaded.file_hash:
                     resolved_file_hash = uploaded.file_hash
                 else:
@@ -114,6 +116,7 @@ def _resolve_source(
             upload_record = store.get_upload_by_hash(resolved_file_hash)
             if not upload_record:
                 raise HTTPException(status_code=404, detail="file_hash 不存在或已过期")
+            source_name = upload_record.get("original_name")
         source_ref = resolved_file_hash
     else:
         raise HTTPException(status_code=400, detail=f"不支持的 source_type: {source_type}")
@@ -123,7 +126,7 @@ def _resolve_source(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return source_ref, resolved_file_hash, cache_key
+    return source_ref, resolved_file_hash, cache_key, source_name
 
 
 @app.on_event("startup")
@@ -221,7 +224,7 @@ def cache_lookup(request: Request, req: CacheLookupRequest):
     _enforce_rate_limit(request, summary_rate_limiter)
     request_id = _generate_request_id(request)
 
-    _source_ref, resolved_hash, cache_key = _resolve_source(
+    _source_ref, resolved_hash, cache_key, _source_name = _resolve_source(
         source_type=req.source_type,
         source_url=req.source_url,
         file_id=req.file_id,
@@ -272,7 +275,7 @@ def create_summary(request: Request, req: SummaryRequest):
 
     cache_service = get_cache_service()
 
-    source_ref, resolved_hash, cache_key = _resolve_source(
+    source_ref, resolved_hash, cache_key, source_name = _resolve_source(
         source_type=req.source_type,
         source_url=req.source_url,
         file_id=req.file_id,
@@ -307,6 +310,7 @@ def create_summary(request: Request, req: SummaryRequest):
                 status="completed",
                 cache_key=cache_key,
                 summary_text=result.summary_text,
+                source_name=result.source_name,
                 created_at=result.created_at,
             )
 
@@ -322,11 +326,14 @@ def create_summary(request: Request, req: SummaryRequest):
                 status=result.status,
                 cache_key=cache_key,
                 job_id=result.job_id,
+                source_name=result.source_name,
                 created_at=result.created_at,
             )
 
     # 创建或更新缓存条目
-    entry = cache_service.get_or_create_entry(cache_key, req.source_type, source_ref)
+    entry = cache_service.get_or_create_entry(
+        cache_key, req.source_type, source_ref, source_name=source_name
+    )
 
     if req.refresh:
         cache_service.bundle_manager.delete_bundle(cache_key, entry.source_type)
@@ -367,6 +374,7 @@ def create_summary(request: Request, req: SummaryRequest):
         status="pending",
         cache_key=cache_key,
         job_id=job_id,
+        source_name=source_name,
         created_at=entry.created_at,
     )
 
@@ -391,6 +399,7 @@ def get_job_status(job_id: str):
         error=job.get("error"),
         cache_status=cache_entry.get("status"),
         summary_text=cache_entry.get("summary_text"),
+        source_name=cache_entry.get("source_name"),
     )
 
 
@@ -410,6 +419,7 @@ def get_cache_entry(cache_key: str):
         cache_key=entry.cache_key,
         source_type=entry.source_type,
         source_ref=entry.source_ref,
+        source_name=entry.source_name,
         status=entry.status,
         profile_version=entry.profile_version,
         summary_text=entry.summary_text,

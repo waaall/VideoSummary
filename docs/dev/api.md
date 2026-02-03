@@ -237,6 +237,7 @@ POST /cache/lookup
   "hit": true,
   "status": "completed",
   "cache_key": "...",
+  "source_name": "video-title-or-filename",
   "summary_text": "..."
 }
 ```
@@ -248,7 +249,7 @@ POST /cache/lookup
 
 **响应（处理中）**:
 ```json
-{"hit": false, "status": "running", "cache_key": "...", "job_id": "j_xxx"}
+{"hit": false, "status": "running", "cache_key": "...", "job_id": "j_xxx", "source_name": "video-title-or-filename"}
 ```
 
 ---
@@ -270,12 +271,12 @@ POST /summaries
 
 **响应（缓存命中）**:
 ```json
-{"status": "completed", "cache_key": "...", "summary_text": "..."}
+{"status": "completed", "cache_key": "...", "summary_text": "...", "source_name": "video-title-or-filename"}
 ```
 
 **响应（未命中/处理中）**:
 ```json
-{"status": "pending", "cache_key": "...", "job_id": "j_xxx"}
+{"status": "pending", "cache_key": "...", "job_id": "j_xxx", "source_name": "video-title-or-filename"}
 ```
 
 ---
@@ -293,7 +294,8 @@ GET /jobs/{job_id}
   "cache_key": "...",
   "status": "running",
   "cache_status": "running",
-  "summary_text": null
+  "summary_text": null,
+  "source_name": "video-title-or-filename"
 }
 ```
 
@@ -306,6 +308,23 @@ GET /cache/{cache_key}
 ```
 
 **响应**: `CacheEntryResponse`
+
+```json
+{
+  "cache_key": "...",
+  "source_type": "url",
+  "source_ref": "https://example.com/...",
+  "source_name": "video-title-or-filename",
+  "status": "completed",
+  "profile_version": "v1",
+  "summary_text": "...",
+  "bundle_path": "/path/to/cache/...",
+  "error": null,
+  "created_at": 0,
+  "updated_at": 0,
+  "last_accessed": 0
+}
+```
 
 ---
 

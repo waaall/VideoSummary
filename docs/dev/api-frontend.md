@@ -114,12 +114,12 @@ POST /summaries
 
 **响应（命中）**:
 ```json
-{"status": "completed", "cache_key": "...", "summary_text": "..."}
+{"status": "completed", "cache_key": "...", "summary_text": "...", "source_name": "video-title-or-filename"}
 ```
 
 **响应（未命中/处理中）**:
 ```json
-{"status": "pending", "cache_key": "...", "job_id": "j_xxx"}
+{"status": "pending", "cache_key": "...", "job_id": "j_xxx", "source_name": "video-title-or-filename"}
 ```
 
 ---
@@ -137,7 +137,8 @@ GET /jobs/{job_id}
   "cache_key": "...",
   "status": "running",
   "cache_status": "running",
-  "summary_text": null
+  "summary_text": null,
+  "source_name": "video-title-or-filename"
 }
 ```
 
@@ -149,7 +150,7 @@ GET /jobs/{job_id}
 GET /cache/{cache_key}
 ```
 
-**响应**: `CacheEntryResponse`
+**响应**: `CacheEntryResponse`（含 `source_name`）
 
 ---
 

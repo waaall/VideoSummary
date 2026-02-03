@@ -136,6 +136,7 @@ class JobQueue:
         job: CacheJob,
         target_dir: Path,
         source_ref: str,
+        source_name: Optional[str],
         summary_text: str,
         profile_version: str,
     ) -> None:
@@ -165,6 +166,7 @@ class JobQueue:
             cache_key=job.cache_key,
             source_type=job.source_type,
             source_ref=source_ref,
+            source_name=source_name,
             status="completed",
             summary_text=summary_text,
             profile_version=profile_version,
@@ -185,6 +187,7 @@ class JobQueue:
                 {
                     "source_type": job.source_type,
                     "source_ref": source_ref,
+                    "source_name": source_name,
                 },
                 f,
                 ensure_ascii=False,
@@ -193,7 +196,7 @@ class JobQueue:
 
     def _prepare_local_inputs(
         self, job: CacheJob, tmp_dir: Path
-    ) -> tuple[str, Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[str, Optional[str], Optional[str], Optional[str], Optional[str]]:
         store = get_store()
         if not job.file_hash:
             raise RuntimeError("local job missing file_hash")
@@ -203,6 +206,7 @@ class JobQueue:
             raise RuntimeError("file_hash not found in uploads")
 
         file_type = record.get("file_type")
+        source_name = record.get("original_name")
         stored_path = Path(record.get("stored_path", ""))
         if not stored_path.exists():
             raise RuntimeError("stored file missing")
@@ -211,19 +215,19 @@ class JobQueue:
             ext = stored_path.suffix or ".vtt"
             target = tmp_dir / f"subtitle{ext.lower()}"
             shutil.copy2(stored_path, target)
-            return file_type, None, None, str(target)
+            return file_type, None, None, str(target), source_name
 
         if file_type == "audio":
             ext = stored_path.suffix or ""
             target = tmp_dir / f"audio{ext.lower()}"
             shutil.copy2(stored_path, target)
-            return file_type, None, str(target), None
+            return file_type, None, str(target), None, source_name
 
         if file_type == "video":
             ext = stored_path.suffix or ""
             target = tmp_dir / f"video{ext.lower()}"
             shutil.copy2(stored_path, target)
-            return file_type, str(target), None, None
+            return file_type, str(target), None, None, source_name
 
         raise RuntimeError(f"unsupported file_type: {file_type}")
 
@@ -285,13 +289,15 @@ class JobQueue:
     def _execute_local_flow(
         self, job: CacheJob, ctx: PipelineContext, profile, tmp_dir: Path
     ) -> None:
-        file_type, video_path, audio_path, subtitle_path = self._prepare_local_inputs(
+        file_type, video_path, audio_path, subtitle_path, source_name = self._prepare_local_inputs(
             job, tmp_dir
         )
 
         ctx.video_path = video_path
         ctx.audio_path = audio_path
         ctx.subtitle_path = subtitle_path
+        if source_name:
+            ctx.set("source_name", source_name)
 
         if file_type == "subtitle":
             self._run_step(job, "parse_subtitle", ParseSubtitleNode("parse").run, ctx)
@@ -413,10 +419,12 @@ class JobQueue:
 
             self._validate_summary_json(tmp_dir, profile.profile_version)
 
+            source_name = ctx.get("source_name") if ctx else None
             self._write_bundle_manifest(
                 job=job,
                 target_dir=tmp_dir,
                 source_ref=entry.source_ref,
+                source_name=source_name,
                 summary_text=summary_text,
                 profile_version=profile.profile_version,
             )
@@ -440,6 +448,7 @@ class JobQueue:
             status,
             summary_text=summary_text if status == "completed" else None,
             error=error,
+            source_name=ctx.get("source_name") if ctx else None,
         )
         cache_service.update_job(job.job_id, status, error=error)
 

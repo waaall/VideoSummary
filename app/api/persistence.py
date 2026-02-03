@@ -57,6 +57,7 @@ class SQLiteStore:
                     cache_key TEXT PRIMARY KEY,
                     source_type TEXT NOT NULL,
                     source_ref TEXT NOT NULL,
+                    source_name TEXT,
                     status TEXT NOT NULL DEFAULT 'pending',
                     profile_version TEXT NOT NULL,
                     summary_text TEXT,
@@ -111,6 +112,13 @@ class SQLiteStore:
             try:
                 self._conn.execute(
                     "ALTER TABLE cache_entries ADD COLUMN profile_version TEXT"
+                )
+            except sqlite3.OperationalError:
+                pass  # 列已存在
+            # cache_entries 表新增 source_name 列（如果不存在）
+            try:
+                self._conn.execute(
+                    "ALTER TABLE cache_entries ADD COLUMN source_name TEXT"
                 )
             except sqlite3.OperationalError:
                 pass  # 列已存在
@@ -173,6 +181,7 @@ class SQLiteStore:
         cache_key: str,
         source_type: str,
         source_ref: str,
+        source_name: Optional[str] = None,
         bundle_path: Optional[str] = None,
         profile_version: Optional[str] = None,
     ) -> None:
@@ -182,11 +191,20 @@ class SQLiteStore:
             self._conn.execute(
                 """
                 INSERT INTO cache_entries (
-                    cache_key, source_type, source_ref, status, profile_version,
+                    cache_key, source_type, source_ref, source_name, status, profile_version,
                     bundle_path, created_at, updated_at
-                ) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
                 """,
-                (cache_key, source_type, source_ref, profile_version or "", bundle_path, now, now),
+                (
+                    cache_key,
+                    source_type,
+                    source_ref,
+                    source_name,
+                    profile_version or "",
+                    bundle_path,
+                    now,
+                    now,
+                ),
             )
 
     def get_cache_entry(self, cache_key: str) -> Optional[Dict[str, Any]]:
@@ -225,6 +243,7 @@ class SQLiteStore:
         error: Optional[str] = None,
         profile_version: Optional[str] = None,
         last_accessed: Optional[float] = None,
+        source_name: Optional[str] = None,
     ) -> None:
         """更新缓存条目"""
         now = time.time()
@@ -249,6 +268,9 @@ class SQLiteStore:
         if last_accessed is not None:
             updates.append("last_accessed = ?")
             params.append(last_accessed)
+        if source_name is not None:
+            updates.append("source_name = ?")
+            params.append(source_name)
 
         params.append(cache_key)
 

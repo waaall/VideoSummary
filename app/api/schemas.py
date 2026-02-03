@@ -36,6 +36,7 @@ class CacheLookupResponse(BaseModel):
         ..., description="状态: completed | running | pending | failed | not_found"
     )
     cache_key: Optional[str] = Field(default=None, description="缓存键")
+    source_name: Optional[str] = Field(default=None, description="来源名称")
     summary_text: Optional[str] = Field(default=None, description="摘要文本")
     bundle_path: Optional[str] = Field(default=None, description="Bundle 目录路径")
     job_id: Optional[str] = Field(default=None, description="任务 ID (status=running/pending 时)")
@@ -64,6 +65,7 @@ class SummaryResponse(BaseModel):
     cache_key: str = Field(..., description="缓存键")
     job_id: Optional[str] = Field(default=None, description="任务 ID")
     summary_text: Optional[str] = Field(default=None, description="摘要文本 (status=completed 时)")
+    source_name: Optional[str] = Field(default=None, description="来源名称")
     error: Optional[str] = Field(default=None, description="错误信息")
     created_at: Optional[float] = Field(default=None, description="创建时间")
 
@@ -79,6 +81,7 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = Field(default=None, description="错误信息")
     cache_status: Optional[str] = Field(default=None, description="缓存状态")
     summary_text: Optional[str] = Field(default=None, description="摘要文本")
+    source_name: Optional[str] = Field(default=None, description="来源名称")
 
 
 class CacheEntryResponse(BaseModel):
@@ -87,6 +90,7 @@ class CacheEntryResponse(BaseModel):
     cache_key: str = Field(..., description="缓存键")
     source_type: str = Field(..., description="来源类型")
     source_ref: str = Field(..., description="来源引用 (规范化 URL 或文件 hash)")
+    source_name: Optional[str] = Field(default=None, description="来源名称")
     status: str = Field(..., description="状态")
     profile_version: str = Field(..., description="处理策略版本")
     summary_text: Optional[str] = Field(default=None, description="摘要文本")

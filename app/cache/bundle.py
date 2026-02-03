@@ -50,6 +50,7 @@ class BundleManifest:
     cache_key: str = ""
     source_type: str = ""  # "url" | "local"
     source_ref: str = ""  # 规范化 URL 或文件 hash
+    source_name: Optional[str] = None  # 展示名称（URL 标题或本地文件名）
     status: str = "pending"  # pending | running | completed | failed
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -65,6 +66,7 @@ class BundleManifest:
             "cache_key": self.cache_key,
             "source_type": self.source_type,
             "source_ref": self.source_ref,
+            "source_name": self.source_name,
             "status": self.status,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -93,6 +95,7 @@ class BundleManifest:
             cache_key=data.get("cache_key", ""),
             source_type=data.get("source_type", ""),
             source_ref=data.get("source_ref", ""),
+            source_name=data.get("source_name"),
             status=data.get("status", "pending"),
             created_at=data.get("created_at", time.time()),
             updated_at=data.get("updated_at", time.time()),
@@ -188,6 +191,7 @@ class BundleManager:
         cache_key: str,
         source_type: str,
         source_ref: str,
+        source_name: Optional[str] = None,
     ) -> BundleManifest:
         """创建新的 bundle
 
@@ -200,6 +204,7 @@ class BundleManager:
             cache_key=cache_key,
             source_type=source_type,
             source_ref=source_ref,
+            source_name=source_name,
             status="pending",
         )
 
@@ -212,6 +217,7 @@ class BundleManager:
             json.dump({
                 "source_type": source_type,
                 "source_ref": source_ref,
+                "source_name": source_name,
             }, f, ensure_ascii=False, indent=2)
 
         logger.info(f"创建 bundle: {cache_key} ({source_type})")
@@ -367,6 +373,7 @@ class BundleManager:
                     results.append({
                         "cache_key": cache_dir.name,
                         "source_type": st,
+                        "source_name": manifest.source_name,
                         "status": manifest.status,
                         "created_at": manifest.created_at,
                         "updated_at": manifest.updated_at,

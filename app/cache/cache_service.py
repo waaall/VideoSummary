@@ -35,6 +35,7 @@ class CacheLookupResult:
     hit: bool
     status: str  # "completed" | "running" | "pending" | "failed" | "not_found"
     cache_key: Optional[str] = None
+    source_name: Optional[str] = None
     summary_text: Optional[str] = None
     bundle_path: Optional[str] = None
     job_id: Optional[str] = None
@@ -47,6 +48,7 @@ class CacheLookupResult:
             "hit": self.hit,
             "status": self.status,
             "cache_key": self.cache_key,
+            "source_name": self.source_name,
             "summary_text": self.summary_text,
             "bundle_path": self.bundle_path,
             "job_id": self.job_id,
@@ -63,6 +65,7 @@ class CacheEntry:
     source_type: str
     source_ref: str
     status: str
+    source_name: Optional[str] = None
     profile_version: str = PROFILE_VERSION
     summary_text: Optional[str] = None
     bundle_path: Optional[str] = None
@@ -77,6 +80,7 @@ class CacheEntry:
             cache_key=data.get("cache_key", ""),
             source_type=data.get("source_type", ""),
             source_ref=data.get("source_ref", ""),
+            source_name=data.get("source_name"),
             status=data.get("status", "pending"),
             profile_version=data.get("profile_version", PROFILE_VERSION),
             summary_text=data.get("summary_text"),
@@ -236,6 +240,7 @@ class CacheService:
                         hit=False,
                         status="failed",
                         cache_key=cache_key,
+                        source_name=entry.get("source_name"),
                         error=reason,
                         created_at=entry.get("created_at"),
                         updated_at=entry.get("updated_at"),
@@ -246,6 +251,7 @@ class CacheService:
                 hit=True,
                 status="completed",
                 cache_key=cache_key,
+                source_name=entry.get("source_name"),
                 summary_text=entry.get("summary_text"),
                 bundle_path=entry.get("bundle_path"),
                 created_at=entry.get("created_at"),
@@ -261,6 +267,7 @@ class CacheService:
                 hit=False,
                 status=status,
                 cache_key=cache_key,
+                source_name=entry.get("source_name"),
                 job_id=job_id,
                 created_at=entry.get("created_at"),
                 updated_at=entry.get("updated_at"),
@@ -272,6 +279,7 @@ class CacheService:
                     hit=False,
                     status="failed",
                     cache_key=cache_key,
+                    source_name=entry.get("source_name"),
                     error=entry.get("error"),
                     created_at=entry.get("created_at"),
                     updated_at=entry.get("updated_at"),
@@ -282,6 +290,7 @@ class CacheService:
                     hit=False,
                     status="failed",
                     cache_key=cache_key,
+                    source_name=entry.get("source_name"),
                     error=entry.get("error"),
                 )
 
@@ -292,6 +301,7 @@ class CacheService:
         cache_key: str,
         source_type: str,
         source_ref: str,
+        source_name: Optional[str] = None,
     ) -> CacheEntry:
         """获取或创建缓存条目
 
@@ -318,6 +328,10 @@ class CacheService:
                 )
                 entry_data = self.store.get_cache_entry(cache_key)
                 return CacheEntry.from_dict(entry_data) if entry_data else entry
+            if source_name and not entry.source_name:
+                self.store.update_cache_entry(cache_key, source_name=source_name)
+                entry_data = self.store.get_cache_entry(cache_key)
+                return CacheEntry.from_dict(entry_data) if entry_data else entry
             return entry
 
         # 创建新条目
@@ -327,6 +341,7 @@ class CacheService:
             cache_key=cache_key,
             source_type=source_type,
             source_ref=source_ref,
+            source_name=source_name,
             bundle_path=bundle_path,
             profile_version=PROFILE_VERSION,
         )
@@ -338,6 +353,7 @@ class CacheService:
             cache_key=cache_key,
             source_type=source_type,
             source_ref=source_ref,
+            source_name=source_name,
             status="pending",
             bundle_path=bundle_path,
         )
@@ -348,6 +364,7 @@ class CacheService:
         status: str,
         summary_text: Optional[str] = None,
         error: Optional[str] = None,
+        source_name: Optional[str] = None,
     ) -> None:
         """更新缓存状态
 
@@ -362,6 +379,7 @@ class CacheService:
             status=status,
             summary_text=summary_text,
             error=error,
+            source_name=source_name,
         )
 
         # 同步更新 bundle.json

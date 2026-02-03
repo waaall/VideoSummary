@@ -73,8 +73,10 @@ class FetchMetadataNode(PipelineNode):
 
         if ctx.source_type == "url" and not video_path:
             # URL 模式下，使用 yt-dlp 获取元数据（不下载）
-            duration = self._get_url_duration(ctx.source_url)
+            duration, title = self._get_url_info(ctx.source_url)
             ctx.set("video_duration", duration)
+            if title and not ctx.get("source_name"):
+                ctx.set("source_name", title)
             logger.info(f"URL 视频时长: {duration}s")
             return
 
@@ -96,8 +98,8 @@ class FetchMetadataNode(PipelineNode):
         logger.info(f"视频元数据: 时长={video_info.duration_seconds}s, "
                    f"分辨率={video_info.width}x{video_info.height}")
 
-    def _get_url_duration(self, url: str) -> float:
-        """使用 yt-dlp 获取 URL 视频时长"""
+    def _get_url_info(self, url: str) -> tuple[float, Optional[str]]:
+        """使用 yt-dlp 获取 URL 元信息"""
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
@@ -109,7 +111,9 @@ class FetchMetadataNode(PipelineNode):
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            return float(info.get("duration", 0))
+            duration = float(info.get("duration", 0))
+            title = info.get("title")
+            return duration, title if isinstance(title, str) else None
 
     def get_output_keys(self) -> List[str]:
         return ["video_duration"]

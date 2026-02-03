@@ -73,6 +73,8 @@ uvicorn app.api.main:app --reload --port 8765
 - `GET /cache/{cache_key}` - 缓存条目详情
 - `DELETE /cache/{cache_key}` - 删除缓存条目
 
+说明：缓存相关响应会包含 `source_name` 字段（URL 标题或本地文件名）。
+
 ---
 
 # Summary 服务测试指南
