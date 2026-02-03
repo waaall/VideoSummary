@@ -309,6 +309,24 @@ GET /cache/{cache_key}
 
 ---
 
+### 缓存删除
+
+```http
+DELETE /cache/{cache_key}
+```
+
+删除缓存条目及其 bundle，同时清理关联的缓存任务记录。
+
+**响应**:
+```json
+{"cache_key": "...", "deleted": true}
+```
+
+**常见错误**:
+- `404` cache_key 不存在
+
+---
+
 ## 常见调用示例（curl）
 
 ### URL 摘要（缓存优先）

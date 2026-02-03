@@ -66,21 +66,31 @@ def get_llm_client() -> OpenAI:
     if _global_client is None:
         with _client_lock:
             if _global_client is None:
-                base_url = os.getenv("OPENAI_BASE_URL", "").strip()
-                base_url = normalize_base_url(base_url)
-                api_key = os.getenv("OPENAI_API_KEY", "").strip()
+                try:
+                    base_url = os.getenv("OPENAI_BASE_URL", "").strip()
+                    base_url = normalize_base_url(base_url)
+                    api_key = os.getenv("OPENAI_API_KEY", "").strip()
 
-                if not base_url or not api_key:
-                    raise ValueError(
-                        "OPENAI_BASE_URL and OPENAI_API_KEY environment variables must be set"
+                    if not base_url or not api_key:
+                        logger.error(
+                            "LLM client init failed: OPENAI_BASE_URL or OPENAI_API_KEY missing "
+                            "(base_url=%s, api_key_set=%s)",
+                            base_url or "<empty>",
+                            bool(api_key),
+                        )
+                        raise ValueError(
+                            "OPENAI_BASE_URL and OPENAI_API_KEY environment variables must be set"
+                        )
+
+                    _global_client = OpenAI(
+                        base_url=base_url,
+                        api_key=api_key,
+                        http_client=create_logging_http_client(),
                     )
-
-                _global_client = OpenAI(
-                    base_url=base_url,
-                    api_key=api_key,
-                    http_client=create_logging_http_client(),
-                )
-                logger.info("LLM client initialized: base_url=%s", base_url)
+                    logger.info("LLM client initialized: base_url=%s", base_url)
+                except Exception:
+                    logger.exception("LLM client initialization failed")
+                    raise
 
     return _global_client
 

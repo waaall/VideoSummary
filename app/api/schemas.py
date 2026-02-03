@@ -95,3 +95,10 @@ class CacheEntryResponse(BaseModel):
     created_at: float = Field(..., description="创建时间")
     updated_at: float = Field(..., description="更新时间")
     last_accessed: Optional[float] = Field(default=None, description="最后访问时间")
+
+
+class CacheDeleteResponse(BaseModel):
+    """缓存删除响应"""
+
+    cache_key: str = Field(..., description="缓存键")
+    deleted: bool = Field(..., description="是否已删除")

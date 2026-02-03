@@ -88,7 +88,7 @@ class TranscribeConfig:
 
     model: TranscribeModelEnum = TranscribeModelEnum.BIJIAN
     output_format: TranscribeOutputFormatEnum = TranscribeOutputFormatEnum.SRT
-    language: TranscribeLanguageEnum = TranscribeLanguageEnum.ENGLISH
+    language: TranscribeLanguageEnum = TranscribeLanguageEnum.AUTO
 
 
 @dataclass
@@ -121,6 +121,18 @@ class WhisperAPIConfig:
     api_base: str = ""
     api_key: str = ""
     model: str = ""
+    prompt: str = ""
+
+
+@dataclass
+class WhisperServiceConfig:
+    """Whisper Service 配置（自建 HTTP 服务）"""
+
+    base_url: str = ""
+    encode: bool = True
+    task: str = "transcribe"
+    vad_filter: bool = False
+    output: str = "srt"
     prompt: str = ""
 
 
@@ -186,6 +198,7 @@ class BackendConfig:
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
     faster_whisper: FasterWhisperConfig = field(default_factory=FasterWhisperConfig)
     whisper_api: WhisperAPIConfig = field(default_factory=WhisperAPIConfig)
+    whisper_service: WhisperServiceConfig = field(default_factory=WhisperServiceConfig)
     subtitle: SubtitleConfig = field(default_factory=SubtitleConfig)
     video: VideoConfig = field(default_factory=VideoConfig)
     subtitle_style: SubtitleStyleConfig = field(default_factory=SubtitleStyleConfig)

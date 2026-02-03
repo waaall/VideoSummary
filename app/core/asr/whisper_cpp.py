@@ -91,10 +91,10 @@ class WhisperCppASR(BaseASR):
             str(self.model_path),
             "-f",
             str(wav_path),
-            "-l",
-            self.language,
-            "--output-srt",
         ]
+        if self.language:
+            whisper_params.extend(["-l", self.language])
+        whisper_params.append("--output-srt")
 
         if not is_const_me_version:
             if sys.platform != "darwin":

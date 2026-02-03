@@ -529,46 +529,56 @@ class TranscribeNode(PipelineNode):
 
     def run(self, ctx: PipelineContext) -> None:
         audio_path = ctx.audio_path
+        transcribe_config = None
+        try:
+            if not audio_path or not Path(audio_path).exists():
+                raise ValueError(f"音频文件不存在: {audio_path}")
 
-        if not audio_path or not Path(audio_path).exists():
-            raise ValueError(f"音频文件不存在: {audio_path}")
+            # 获取转录配置
+            transcribe_config = self.params.get("config")
 
-        # 获取转录配置
-        transcribe_config = self.params.get("config")
+            if not transcribe_config:
+                # 使用默认配置或从 extra 获取
+                transcribe_config = ctx.get("transcribe_config")
 
-        if not transcribe_config:
-            # 使用默认配置或从 extra 获取
-            transcribe_config = ctx.get("transcribe_config")
+            if not transcribe_config:
+                raise ValueError("转录配置未提供")
 
-        if not transcribe_config:
-            raise ValueError("转录配置未提供")
+            # 延迟导入避免循环依赖
+            from app.core.asr import transcribe
 
-        # 延迟导入避免循环依赖
-        from app.core.asr import transcribe
+            # 执行转录（并发限制）
+            with transcribe_limiter.acquire():
+                logger.info(f"开始转录: {audio_path}")
+                asr_data = transcribe(audio_path, transcribe_config, callback=None)
 
-        # 执行转录（并发限制）
-        with transcribe_limiter.acquire():
-            logger.info(f"开始转录: {audio_path}")
-            asr_data = transcribe(audio_path, transcribe_config, callback=None)
+            # 计算 token 数（使用片段文本总字符数估算）
+            total_text = "".join(seg.text for seg in asr_data.segments)
+            token_count = len(total_text)
 
-        # 计算 token 数（使用片段文本总字符数估算）
-        total_text = "".join(seg.text for seg in asr_data.segments)
-        token_count = len(total_text)
+            ctx.set("asr_data", asr_data)
+            ctx.set("transcript_token_count", token_count)
+            ctx.set("transcript_segment_count", len(asr_data.segments))
 
-        ctx.set("asr_data", asr_data)
-        ctx.set("transcript_token_count", token_count)
-        ctx.set("transcript_segment_count", len(asr_data.segments))
+            # 保存 ASR 结果到 bundle_dir
+            if ctx.bundle_dir:
+                import json
+                asr_path = Path(ctx.bundle_dir) / "asr.json"
+                asr_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(asr_path, "w", encoding="utf-8") as f:
+                    json.dump(asr_data.to_json(), f, ensure_ascii=False, indent=2)
+                logger.debug(f"ASR 结果保存到: {asr_path}")
 
-        # 保存 ASR 结果到 bundle_dir
-        if ctx.bundle_dir:
-            import json
-            asr_path = Path(ctx.bundle_dir) / "asr.json"
-            asr_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(asr_path, "w", encoding="utf-8") as f:
-                json.dump(asr_data.to_json(), f, ensure_ascii=False, indent=2)
-            logger.debug(f"ASR 结果保存到: {asr_path}")
-
-        logger.info(f"转录完成: {len(asr_data.segments)} 个片段, ~{token_count} 字符")
+            logger.info(f"转录完成: {len(asr_data.segments)} 个片段, ~{token_count} 字符")
+        except Exception as e:
+            model = getattr(transcribe_config, "transcribe_model", None)
+            logger.exception(
+                "TranscribeNode failed: audio_path=%s model=%s error=%s",
+                audio_path,
+                model,
+                e,
+            )
+            raise
 
     def get_output_keys(self) -> List[str]:
         return ["transcript_token_count", "asr_data"]

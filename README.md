@@ -71,6 +71,7 @@ uvicorn app.api.main:app --reload --port 8765
 - `POST /summaries` - 创建/查询摘要（缓存优先）
 - `GET /jobs/{job_id}` - 任务状态
 - `GET /cache/{cache_key}` - 缓存条目详情
+- `DELETE /cache/{cache_key}` - 删除缓存条目
 
 ---
 
@@ -132,4 +133,10 @@ curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/
     "source_type": "local",
     "file_id": "f_xxx"
   }' | python -m json.tool
+```
+
+### 5. 删除缓存
+
+```bash
+curl -s -X DELETE http://127.0.0.1:8765/cache/<cache_key> | python -m json.tool
 ```

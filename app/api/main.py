@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.schemas import (
     CacheEntryResponse,
+    CacheDeleteResponse,
     CacheLookupRequest,
     CacheLookupResponse,
     JobStatusResponse,
@@ -418,6 +419,19 @@ def get_cache_entry(cache_key: str):
         updated_at=entry.updated_at,
         last_accessed=entry.last_accessed,
     )
+
+
+@app.delete("/cache/{cache_key}", response_model=CacheDeleteResponse)
+def delete_cache_entry(request: Request, cache_key: str):
+    """删除缓存条目及其 bundle"""
+    _enforce_rate_limit(request, summary_rate_limiter)
+    cache_service = get_cache_service()
+    deleted = cache_service.delete_entry(cache_key)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="cache_key 不存在")
+
+    return CacheDeleteResponse(cache_key=cache_key, deleted=True)
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8765, reload: bool = False) -> None:

@@ -5,6 +5,7 @@ from app.core.asr.faster_whisper import FasterWhisperASR
 from app.core.asr.jianying import JianYingASR
 from app.core.asr.whisper_api import WhisperAPI
 from app.core.asr.whisper_cpp import WhisperCppASR
+from app.core.asr.whisper_service import WhisperServiceASR
 from app.core.entities import TranscribeConfig, TranscribeModelEnum
 
 
@@ -66,6 +67,9 @@ def _create_asr_instance(audio_path: str, config: TranscribeConfig) -> ChunkedAS
     elif model_type == TranscribeModelEnum.WHISPER_API:
         return _create_whisper_api_asr(audio_path, config)
 
+    elif model_type == TranscribeModelEnum.WHISPER_SERVICE:
+        return _create_whisper_service_asr(audio_path, config)
+
     elif model_type == TranscribeModelEnum.FASTER_WHISPER:
         return _create_faster_whisper_asr(audio_path, config)
 
@@ -123,6 +127,24 @@ def _create_whisper_api_asr(audio_path: str, config: TranscribeConfig) -> Chunke
     }
     return ChunkedASR(
         asr_class=WhisperAPI, audio_path=audio_path, asr_kwargs=asr_kwargs
+    )
+
+
+def _create_whisper_service_asr(audio_path: str, config: TranscribeConfig) -> ChunkedASR:
+    """Create Whisper Service ASR instance with chunking support."""
+    asr_kwargs = {
+        "use_cache": True,
+        "language": config.transcribe_language,
+        "prompt": config.whisper_service_prompt or "",
+        "base_url": config.whisper_service_base or "",
+        "encode": config.whisper_service_encode,
+        "task": config.whisper_service_task,
+        "vad_filter": config.whisper_service_vad_filter,
+        "word_timestamps": config.need_word_time_stamp,
+        "output": config.whisper_service_output,
+    }
+    return ChunkedASR(
+        asr_class=WhisperServiceASR, audio_path=audio_path, asr_kwargs=asr_kwargs
     )
 
 

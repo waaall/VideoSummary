@@ -119,6 +119,7 @@ class TranscribeModelEnum(Enum):
     BIJIAN = "B 接口"
     JIANYING = "J 接口"
     WHISPER_API = "Whisper [API] ✨"
+    WHISPER_SERVICE = "Whisper Service"
     FASTER_WHISPER = "FasterWhisper ✨"
     WHISPER_CPP = "WhisperCpp"
 
@@ -225,6 +226,7 @@ class VideoQualityEnum(Enum):
 class TranscribeLanguageEnum(Enum):
     """转录语言"""
 
+    AUTO = "自动"
     ENGLISH = "英语"
     CHINESE = "中文"
     JAPANESE = "日本語"
@@ -350,6 +352,9 @@ class FasterWhisperModelEnum(Enum):
 
 
 LANGUAGES = {
+    "自动": "",
+    "Auto": "",
+    "auto": "",
     "英语": "en",
     "中文": "zh",
     "日本語": "ja",
@@ -507,6 +512,13 @@ class TranscribeConfig:
     whisper_api_base: Optional[str] = None
     whisper_api_model: Optional[str] = None
     whisper_api_prompt: Optional[str] = None
+    # Whisper Service 配置
+    whisper_service_base: Optional[str] = None
+    whisper_service_encode: bool = True
+    whisper_service_task: str = "transcribe"
+    whisper_service_vad_filter: bool = False
+    whisper_service_output: str = "srt"
+    whisper_service_prompt: Optional[str] = None
     # Faster Whisper 配置
     faster_whisper_program: Optional[str] = None
     faster_whisper_model: Optional[FasterWhisperModelEnum] = None
@@ -543,6 +555,15 @@ class TranscribeConfig:
             lines.append(f"API Model: {self.whisper_api_model}")
             if self.whisper_api_prompt:
                 lines.append(f"Prompt: {self.whisper_api_prompt[:30]}...")
+
+        elif self.transcribe_model == TranscribeModelEnum.WHISPER_SERVICE:
+            lines.append(f"Service Base: {self.whisper_service_base}")
+            lines.append(f"Encode: {self.whisper_service_encode}")
+            lines.append(f"Task: {self.whisper_service_task}")
+            lines.append(f"VAD Filter: {self.whisper_service_vad_filter}")
+            lines.append(f"Output: {self.whisper_service_output}")
+            if self.whisper_service_prompt:
+                lines.append(f"Prompt: {self.whisper_service_prompt[:30]}...")
 
         elif self.transcribe_model == TranscribeModelEnum.FASTER_WHISPER:
             lines.append(

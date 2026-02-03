@@ -150,3 +150,19 @@ GET /cache/{cache_key}
 ```
 
 **响应**: `CacheEntryResponse`
+
+---
+
+### 缓存删除
+
+```http
+DELETE /cache/{cache_key}
+```
+
+**响应**:
+```json
+{"cache_key": "...", "deleted": true}
+```
+
+**常见错误**:
+- `404` cache_key 不存在
