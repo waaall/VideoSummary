@@ -44,6 +44,11 @@ export interface CacheLookupResponse {
 
 export type CacheEntryResponse = Record<string, unknown>;
 
+export interface CacheDeleteResponse {
+  cache_key: string;
+  deleted: boolean;
+}
+
 export interface HealthResponse {
   status: string;
   version: string;

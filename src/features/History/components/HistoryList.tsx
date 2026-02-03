@@ -3,12 +3,15 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Empty, Button } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Empty, Button, message } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { useHistoryStore, filterHistoryJobs } from '@/stores/historyStore';
+import { deleteCache } from '@/api';
 import { historyConfig } from '@/config/history';
 import { SearchInput } from './SearchInput';
 import { HistoryListItem } from './HistoryListItem';
+import type { HistoryJob } from '@/types/history';
 import styles from './HistoryList.module.css';
 
 interface HistoryListProps {
@@ -16,6 +19,7 @@ interface HistoryListProps {
 }
 
 export function HistoryList({ onSelectJob }: HistoryListProps) {
+  const navigate = useNavigate();
   const {
     jobs,
     selectedJobId,
@@ -43,10 +47,30 @@ export function HistoryList({ onSelectJob }: HistoryListProps) {
   );
 
   const handleDeleteJob = useCallback(
-    (jobId: string) => {
-      removeJob(jobId);
+    async (job: HistoryJob) => {
+      if (!job.cacheKey) {
+        message.error('缺少 cache_key，无法删除缓存');
+        return;
+      }
+
+      try {
+        const response = await deleteCache(job.cacheKey);
+        if (response.data?.deleted) {
+          if (selectedJobId === job.jobId) {
+            navigate('/history', { replace: true });
+          }
+          removeJob(job.jobId);
+          message.success('缓存已删除');
+        } else {
+          message.error('删除缓存失败');
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '删除缓存失败';
+        message.error(errorMessage);
+      }
     },
-    [removeJob]
+    [removeJob, selectedJobId, navigate]
   );
 
   const handleClearAll = useCallback(() => {
@@ -79,7 +103,9 @@ export function HistoryList({ onSelectJob }: HistoryListProps) {
                 job={job}
                 isSelected={selectedJobId === job.jobId}
                 onClick={() => handleSelectJob(job.jobId)}
-                onDelete={() => handleDeleteJob(job.jobId)}
+                onDelete={() => {
+                  void handleDeleteJob(job);
+                }}
               />
             ))}
 

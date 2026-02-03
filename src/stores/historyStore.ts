@@ -37,6 +37,37 @@ export const useHistoryStore = create<HistoryState>()(
             return state;
           }
 
+          // 若 cacheKey 相同，仅保留最新的尝试记录
+          if (job.cacheKey) {
+            const sameCacheIndex = state.jobs.findIndex(
+              (j) => j.cacheKey === job.cacheKey
+            );
+
+            if (sameCacheIndex !== -1) {
+              const existingJob = state.jobs[sameCacheIndex];
+              const isNewer =
+                job.createdAt > existingJob.createdAt ||
+                (job.createdAt === existingJob.createdAt &&
+                  job.updatedAt > existingJob.updatedAt);
+
+              if (!isNewer) {
+                return state;
+              }
+
+              const newJobs = [
+                job,
+                ...state.jobs.filter((_, index) => index !== sameCacheIndex),
+              ].slice(0, historyConfig.maxItems);
+
+              const newSelectedJobId =
+                state.selectedJobId === existingJob.jobId
+                  ? job.jobId
+                  : state.selectedJobId;
+
+              return { jobs: newJobs, selectedJobId: newSelectedJobId };
+            }
+          }
+
           // 添加到队首，并限制总数
           const newJobs = [job, ...state.jobs].slice(0, historyConfig.maxItems);
           return { jobs: newJobs };

@@ -10,6 +10,7 @@ import type {
   CacheLookupRequest,
   CacheLookupResponse,
   CacheEntryResponse,
+  CacheDeleteResponse,
   HealthResponse,
 } from '@/types/summary';
 
@@ -42,3 +43,9 @@ export const lookupCache = (request: CacheLookupRequest) =>
  */
 export const getCacheEntry = (cacheKey: string) =>
   apiClient.get<CacheEntryResponse>(`/cache/${cacheKey}`);
+
+/**
+ * 删除缓存
+ */
+export const deleteCache = (cacheKey: string) =>
+  apiClient.delete<CacheDeleteResponse>(`/cache/${cacheKey}`);
