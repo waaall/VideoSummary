@@ -2,7 +2,7 @@
  * 历史记录搜索框
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Input } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { historyConfig } from '@/config/history';
@@ -20,6 +20,7 @@ export function SearchInput({
   placeholder = '搜索 URL / 标题 / Job ID...',
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 同步外部值变化
   useEffect(() => {
@@ -31,15 +32,25 @@ export function SearchInput({
     (inputValue: string) => {
       setLocalValue(inputValue);
 
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
       // 使用防抖延迟更新外部状态
-      const timer = setTimeout(() => {
+      debounceRef.current = setTimeout(() => {
         onChange(inputValue);
       }, historyConfig.searchDebounce);
-
-      return () => clearTimeout(timer);
     },
     [onChange]
   );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={styles.container}>
