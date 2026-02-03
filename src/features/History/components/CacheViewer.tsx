@@ -37,9 +37,22 @@ export function CacheViewer({ cacheEntry, loading = false, error = null }: Cache
     );
   }
 
+  const hiddenKeys = new Set(['summary_text', 'bundle_path']);
+  const filteredEntry = Object.fromEntries(
+    Object.entries(cacheEntry).filter(([key]) => !hiddenKeys.has(key))
+  );
+
+  if (Object.keys(filteredEntry).length === 0) {
+    return (
+      <div className={styles.container}>
+        <Empty description="暂无缓存信息" />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
-      <pre className={styles.codeBlock}>{JSON.stringify(cacheEntry, null, 2)}</pre>
+      <pre className={styles.codeBlock}>{JSON.stringify(filteredEntry, null, 2)}</pre>
     </div>
   );
 }

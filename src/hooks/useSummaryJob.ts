@@ -98,27 +98,28 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
       const now = Date.now();
 
       if (data.status === 'completed') {
-        completeFromSummary(data);
+        const resolvedJobId =
+          data.job_id ?? (data.cache_key ? `cache_${data.cache_key}` : `local_${now}`);
+        const normalized = { ...data, job_id: resolvedJobId };
+
+        completeFromSummary(normalized);
+
+        const historyJob: HistoryJob = {
+          jobId: resolvedJobId,
+          sourceType: request.source_type,
+          sourceUrl: context?.sourceUrl ?? request.source_url,
+          fileName: context?.fileName,
+          status: 'completed',
+          cacheKey: data.cache_key ?? undefined,
+          cacheStatus: 'completed',
+          summaryText: data.summary_text ?? undefined,
+          createdAt: data.created_at ?? now,
+          updatedAt: now,
+        };
+        addJob(historyJob);
+
         onComplete?.(data.summary_text ?? null);
-
-        // 缓存命中时也添加到历史
-        if (data.job_id) {
-          const historyJob: HistoryJob = {
-            jobId: data.job_id,
-            sourceType: request.source_type,
-            sourceUrl: context?.sourceUrl ?? request.source_url,
-            fileName: context?.fileName,
-            status: 'completed',
-            cacheKey: data.cache_key ?? undefined,
-            cacheStatus: 'completed',
-            summaryText: data.summary_text ?? undefined,
-            createdAt: data.created_at ?? now,
-            updatedAt: now,
-          };
-          addJob(historyJob);
-        }
-
-        return data;
+        return normalized;
       }
 
       if (!data.job_id) {

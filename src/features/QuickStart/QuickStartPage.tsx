@@ -6,9 +6,9 @@
 import { useState, useCallback } from 'react';
 import { Tabs, message } from 'antd';
 import { LinkOutlined, UploadOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { UrlInput } from './UrlInput';
 import { LocalUpload } from './LocalUpload';
-import { ResultDisplay } from './ResultDisplay';
 import { useSummaryJob } from '@/hooks';
 import styles from './QuickStartPage.module.css';
 
@@ -17,27 +17,12 @@ type TabKey = 'url' | 'local';
 export function QuickStartPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('url');
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const {
-    status,
-    jobId,
-    summaryText,
-    cacheStatus,
-    cacheKey,
-    error,
-    isRunning,
     submitSummary,
     reset,
-  } = useSummaryJob({
-    onComplete: () => {
-      message.success('处理完成');
-      setSubmitting(false);
-    },
-    onError: (err) => {
-      message.error(`处理失败: ${err}`);
-      setSubmitting(false);
-    },
-  });
+  } = useSummaryJob();
 
   const handleUrlSubmit = useCallback(
     async (url: string, refresh: boolean) => {
@@ -45,7 +30,7 @@ export function QuickStartPage() {
       reset();
 
       try {
-        await submitSummary(
+        const data = await submitSummary(
           {
             source_type: 'url',
             source_url: url,
@@ -53,13 +38,24 @@ export function QuickStartPage() {
           },
           { sourceUrl: url }
         );
+
+        const jobId = data.job_id;
+        if (jobId) {
+          const isCompleted = data.status === 'completed';
+          message.success(isCompleted ? '处理完成，已进入历史任务' : '任务已提交，已进入历史任务');
+          navigate(`/history/${jobId}`);
+        } else {
+          message.success('任务已提交，请在历史任务中查看');
+          navigate('/history');
+        }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);
+      } finally {
         setSubmitting(false);
       }
     },
-    [reset, submitSummary]
+    [reset, submitSummary, navigate]
   );
 
   const handleLocalSubmit = useCallback(
@@ -68,7 +64,7 @@ export function QuickStartPage() {
       reset();
 
       try {
-        await submitSummary(
+        const data = await submitSummary(
           {
             source_type: 'local',
             file_id: fileId,
@@ -76,13 +72,24 @@ export function QuickStartPage() {
           },
           { fileName }
         );
+
+        const jobId = data.job_id;
+        if (jobId) {
+          const isCompleted = data.status === 'completed';
+          message.success(isCompleted ? '处理完成，已进入历史任务' : '任务已提交，已进入历史任务');
+          navigate(`/history/${jobId}`);
+        } else {
+          message.success('任务已提交，请在历史任务中查看');
+          navigate('/history');
+        }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);
+      } finally {
         setSubmitting(false);
       }
     },
-    [reset, submitSummary]
+    [reset, submitSummary, navigate]
   );
 
   const tabItems = [
@@ -97,7 +104,7 @@ export function QuickStartPage() {
       children: (
         <UrlInput
           onSubmit={handleUrlSubmit}
-          loading={submitting || isRunning}
+          loading={submitting}
         />
       ),
     },
@@ -112,7 +119,7 @@ export function QuickStartPage() {
       children: (
         <LocalUpload
           onSubmit={handleLocalSubmit}
-          loading={submitting || isRunning}
+          loading={submitting}
         />
       ),
     },
@@ -136,15 +143,6 @@ export function QuickStartPage() {
         />
       </div>
 
-      <ResultDisplay
-        status={status}
-        jobId={jobId}
-        summaryText={summaryText}
-        cacheStatus={cacheStatus}
-        cacheKey={cacheKey}
-        error={error}
-        onReset={reset}
-      />
     </div>
   );
 }
