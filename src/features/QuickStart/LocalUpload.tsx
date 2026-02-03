@@ -12,7 +12,7 @@ import {
   DeleteOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { FileUploader } from '@/components/common';
+import { FileUploader } from '@/components/common/FileUploader';
 import { uploadLocalFile } from '@/api/upload';
 import type { FileCategory } from '@/utils/validators';
 import styles from './LocalUpload.module.css';

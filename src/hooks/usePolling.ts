@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { apiConfig } from '@/config';
+import { apiConfig } from '@/config/app';
 
 interface UsePollingOptions<T> {
   // 轮询函数

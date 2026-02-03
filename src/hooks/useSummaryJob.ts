@@ -4,12 +4,14 @@
  */
 
 import { useCallback } from 'react';
-import { useSummaryJobStore, useSettingsStore, useHistoryStore } from '@/stores';
-import { createSummary, getJobStatus } from '@/api';
+import { useSummaryJobStore } from '@/stores/summaryJobStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { useHistoryStore } from '@/stores/historyStore';
+import { createSummary, getJobStatus } from '@/api/summaries';
 import { usePolling } from './usePolling';
 import type { SummaryCreateRequest, JobStatusResponse } from '@/types/summary';
 import type { HistoryJob } from '@/types/history';
-import { CACHE_ID_PREFIX, LOCAL_ID_PREFIX } from '@/utils';
+import { CACHE_ID_PREFIX, LOCAL_ID_PREFIX } from '@/utils/historyJob';
 
 interface UseSummaryJobOptions {
   pollingInterval?: number;
@@ -41,7 +43,8 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
   } = useSummaryJobStore();
 
   const pollingIntervalSetting = useSettingsStore((state) => state.pollingInterval);
-  const { addJob, updateJob } = useHistoryStore();
+  const addJob = useHistoryStore((state) => state.addJob);
+  const updateJob = useHistoryStore((state) => state.updateJob);
   const { onComplete, onError } = options;
   const pollingInterval = options.pollingInterval ?? pollingIntervalSetting;
 

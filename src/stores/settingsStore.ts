@@ -5,7 +5,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ThemeMode } from '@/config/theme';
-import { apiConfig, defaultUiSettings } from '@/config';
+import { apiConfig, defaultUiSettings } from '@/config/app';
 
 interface SettingsState {
   // 主题设置

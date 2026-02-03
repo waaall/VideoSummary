@@ -4,8 +4,8 @@
  */
 
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { apiConfig } from '@/config';
-import { useSettingsStore } from '@/stores';
+import { apiConfig } from '@/config/app';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 // 创建 axios 实例
 const apiClient = axios.create({

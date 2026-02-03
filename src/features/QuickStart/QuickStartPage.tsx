@@ -9,7 +9,7 @@ import { LinkOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { UrlInput } from './UrlInput';
 import { LocalUpload } from './LocalUpload';
-import { useSummaryJob } from '@/hooks';
+import { useSummaryJob } from '@/hooks/useSummaryJob';
 import styles from './QuickStartPage.module.css';
 
 type TabKey = 'url' | 'local';

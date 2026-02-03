@@ -6,20 +6,31 @@ import { useEffect, useMemo, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { MainLayout } from '@/components/Layout';
-import { LoadingSpinner, ErrorBoundary } from '@/components/common';
-import { useSettingsStore, getResolvedTheme, setupThemeListener } from '@/stores';
+import { MainLayout } from '@/components/Layout/MainLayout';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import {
+  useSettingsStore,
+  getResolvedTheme,
+  setupThemeListener,
+} from '@/stores/settingsStore';
 import { getAntdThemeToken } from '@/config/theme';
 
 // 页面组件（懒加载）
 const QuickStartPage = lazy(() =>
-  import('@/features/QuickStart').then((m) => ({ default: m.QuickStartPage }))
+  import('@/features/QuickStart/QuickStartPage').then((m) => ({
+    default: m.QuickStartPage,
+  }))
 );
 const HistoryPage = lazy(() =>
-  import('@/features/History').then((m) => ({ default: m.HistoryPage }))
+  import('@/features/History/HistoryPage').then((m) => ({
+    default: m.HistoryPage,
+  }))
 );
 const SettingsPage = lazy(() =>
-  import('@/features/Settings').then((m) => ({ default: m.SettingsPage }))
+  import('@/features/Settings/SettingsPage').then((m) => ({
+    default: m.SettingsPage,
+  }))
 );
 
 // 页面加载占位

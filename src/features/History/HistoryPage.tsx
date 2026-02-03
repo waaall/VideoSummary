@@ -6,20 +6,34 @@
 import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { message } from 'antd';
+import { useShallow } from 'zustand/react/shallow';
 import { useHistoryStore } from '@/stores/historyStore';
-import { getJobStatus } from '@/api';
+import { getJobStatus } from '@/api/summaries';
 import { HistoryList } from './components/HistoryList';
 import { JobDetail } from './components/JobDetail';
 import { EmptyState } from './components/EmptyState';
 import type { HistoryJob } from '@/types/history';
-import { isCacheId, isLocalId, parseCacheKeyFromId, resolveHistoryId } from '@/utils';
+import {
+  isCacheId,
+  isLocalId,
+  parseCacheKeyFromId,
+  resolveHistoryId,
+} from '@/utils/historyJob';
 import styles from './HistoryPage.module.css';
 
 export function HistoryPage() {
   const { jobId: paramJobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
 
-  const { jobs, selectedJobId, selectJob, addJob, updateJob } = useHistoryStore();
+  const { jobs, selectedJobId, selectJob, addJob, updateJob } = useHistoryStore(
+    useShallow((state) => ({
+      jobs: state.jobs,
+      selectedJobId: state.selectedJobId,
+      selectJob: state.selectJob,
+      addJob: state.addJob,
+      updateJob: state.updateJob,
+    }))
+  );
 
   // 处理选中任务
   const handleSelectJob = useCallback(

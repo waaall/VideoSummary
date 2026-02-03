@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HistoryJob } from '@/types/history';
 import { historyConfig } from '@/config/history';
-import { resolveHistoryId } from '@/utils';
+import { resolveHistoryId } from '@/utils/historyJob';
 
 interface HistoryState {
   jobs: HistoryJob[];

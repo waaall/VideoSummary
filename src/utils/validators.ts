@@ -2,8 +2,8 @@
  * 验证工具函数
  */
 
-import { uploadConfig } from '@/config';
-import { getUploadMaxFileSizeBytes } from '@/stores';
+import { uploadConfig } from '@/config/app';
+import { getUploadMaxFileSizeBytes } from '@/stores/settingsStore';
 
 /**
  * 验证 URL 格式

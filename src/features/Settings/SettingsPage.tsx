@@ -4,7 +4,8 @@
 
 import { Card, Form, Input, InputNumber, Select, Button, message, Space } from 'antd';
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
-import { useSettingsStore } from '@/stores';
+import { useShallow } from 'zustand/react/shallow';
+import { useSettingsStore } from '@/stores/settingsStore';
 import type { ThemeMode } from '@/config/theme';
 import styles from './SettingsPage.module.css';
 
@@ -23,7 +24,23 @@ export function SettingsPage() {
     setRequestTimeout,
     setUploadMaxFileSizeMb,
     resetToDefaults,
-  } = useSettingsStore();
+  } = useSettingsStore(
+    useShallow((state) => ({
+      themeMode: state.themeMode,
+      apiBaseUrl: state.apiBaseUrl,
+      apiKey: state.apiKey,
+      pollingInterval: state.pollingInterval,
+      requestTimeout: state.requestTimeout,
+      uploadMaxFileSizeMb: state.uploadMaxFileSizeMb,
+      setThemeMode: state.setThemeMode,
+      setApiBaseUrl: state.setApiBaseUrl,
+      setApiKey: state.setApiKey,
+      setPollingInterval: state.setPollingInterval,
+      setRequestTimeout: state.setRequestTimeout,
+      setUploadMaxFileSizeMb: state.setUploadMaxFileSizeMb,
+      resetToDefaults: state.resetToDefaults,
+    }))
+  );
 
   const [form] = Form.useForm();
 

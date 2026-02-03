@@ -6,13 +6,14 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Empty, Button, message } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
+import { useShallow } from 'zustand/react/shallow';
 import { useHistoryStore, filterHistoryJobs } from '@/stores/historyStore';
-import { deleteCache } from '@/api';
+import { deleteCache } from '@/api/summaries';
 import { historyConfig } from '@/config/history';
 import { SearchInput } from './SearchInput';
 import { HistoryListItem } from './HistoryListItem';
 import type { HistoryJob } from '@/types/history';
-import { resolveCacheKey, resolveHistoryId } from '@/utils';
+import { resolveCacheKey, resolveHistoryId } from '@/utils/historyJob';
 import styles from './HistoryList.module.css';
 
 interface HistoryListProps {
@@ -28,7 +29,16 @@ export function HistoryList({ onSelectJob }: HistoryListProps) {
     setSearchKeyword,
     removeJob,
     clearHistory,
-  } = useHistoryStore();
+  } = useHistoryStore(
+    useShallow((state) => ({
+      jobs: state.jobs,
+      selectedJobId: state.selectedJobId,
+      searchKeyword: state.searchKeyword,
+      setSearchKeyword: state.setSearchKeyword,
+      removeJob: state.removeJob,
+      clearHistory: state.clearHistory,
+    }))
+  );
 
   // 过滤后的任务列表
   const filteredJobs = useMemo(

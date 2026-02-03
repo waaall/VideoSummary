@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import type { HistoryJob } from '@/types/history';
 import { formatTimestamp } from '@/utils/formatters';
-import { resolveHistoryId } from '@/utils';
+import { resolveHistoryId } from '@/utils/historyJob';
 import styles from './HistoryListItem.module.css';
 
 interface HistoryListItemProps {

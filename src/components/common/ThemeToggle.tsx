@@ -4,7 +4,7 @@
 
 import { Dropdown, Button } from 'antd';
 import type { MenuProps } from 'antd';
-import { useSettingsStore, getResolvedTheme } from '@/stores';
+import { useSettingsStore, getResolvedTheme } from '@/stores/settingsStore';
 import type { ThemeMode } from '@/config/theme';
 import styles from './ThemeToggle.module.css';
 

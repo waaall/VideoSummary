@@ -3,8 +3,8 @@
  */
 
 import { Link, useLocation } from 'react-router-dom';
-import { ThemeToggle } from '@/components/common';
-import { appMeta } from '@/config';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { appMeta } from '@/config/app';
 import styles from './Header.module.css';
 
 // Logo 图标
