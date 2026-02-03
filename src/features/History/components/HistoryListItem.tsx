@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import type { HistoryJob } from '@/types/history';
 import { formatTimestamp } from '@/utils/formatters';
+import { resolveHistoryId } from '@/utils';
 import styles from './HistoryListItem.module.css';
 
 interface HistoryListItemProps {
@@ -57,13 +58,15 @@ export function HistoryListItem({
   onDelete,
 }: HistoryListItemProps) {
   const isRunning = job.status === 'pending' || job.status === 'running';
+  const historyId = resolveHistoryId(job);
+  const displayId = job.jobId ?? job.cacheKey ?? historyId;
 
   // 获取显示标题
   const displayTitle =
     job.title ||
     job.fileName ||
     (job.sourceUrl ? new URL(job.sourceUrl).hostname : null) ||
-    job.jobId.slice(0, 8);
+    historyId.slice(0, 8);
 
   // 获取来源描述
   const sourceDesc =
@@ -107,7 +110,7 @@ export function HistoryListItem({
 
         <div className={styles.meta}>
           <span className={styles.jobId}>
-            {job.jobId.slice(0, 12)}...
+            {displayId.length > 12 ? `${displayId.slice(0, 12)}...` : displayId}
           </span>
           <span className={styles.time}>
             {formatTimestamp(job.updatedAt)}

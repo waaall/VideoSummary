@@ -12,6 +12,7 @@ import { historyConfig } from '@/config/history';
 import { SearchInput } from './SearchInput';
 import { HistoryListItem } from './HistoryListItem';
 import type { HistoryJob } from '@/types/history';
+import { resolveCacheKey, resolveHistoryId } from '@/utils';
 import styles from './HistoryList.module.css';
 
 interface HistoryListProps {
@@ -48,18 +49,20 @@ export function HistoryList({ onSelectJob }: HistoryListProps) {
 
   const handleDeleteJob = useCallback(
     async (job: HistoryJob) => {
-      if (!job.cacheKey) {
+      const cacheKey = resolveCacheKey(job);
+      if (!cacheKey) {
         message.error('缺少 cache_key，无法删除缓存');
         return;
       }
 
       try {
-        const response = await deleteCache(job.cacheKey);
+        const response = await deleteCache(cacheKey);
         if (response.data?.deleted) {
-          if (selectedJobId === job.jobId) {
+          const historyId = resolveHistoryId(job);
+          if (selectedJobId === historyId) {
             navigate('/history', { replace: true });
           }
-          removeJob(job.jobId);
+          removeJob(historyId);
           message.success('缓存已删除');
         } else {
           message.error('删除缓存失败');
@@ -99,10 +102,10 @@ export function HistoryList({ onSelectJob }: HistoryListProps) {
           <div className={styles.list}>
             {displayJobs.map((job) => (
               <HistoryListItem
-                key={job.jobId}
+                key={resolveHistoryId(job)}
                 job={job}
-                isSelected={selectedJobId === job.jobId}
-                onClick={() => handleSelectJob(job.jobId)}
+                isSelected={selectedJobId === resolveHistoryId(job)}
+                onClick={() => handleSelectJob(resolveHistoryId(job))}
                 onDelete={() => {
                   void handleDeleteJob(job);
                 }}

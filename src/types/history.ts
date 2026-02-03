@@ -5,7 +5,8 @@
 import type { SummaryStatus } from './summary';
 
 export interface HistoryJob {
-  jobId: string;
+  historyId: string;
+  jobId?: string;
   sourceType: 'url' | 'local';
   sourceUrl?: string;
   fileName?: string;
@@ -13,6 +14,7 @@ export interface HistoryJob {
   status: SummaryStatus | 'idle';
   cacheKey?: string;
   cacheStatus?: string;
+  isCacheHit?: boolean;
   summaryText?: string;
   error?: string;
   createdAt: number;

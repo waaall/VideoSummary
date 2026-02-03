@@ -12,6 +12,7 @@ import { HistoryList } from './components/HistoryList';
 import { JobDetail } from './components/JobDetail';
 import { EmptyState } from './components/EmptyState';
 import type { HistoryJob } from '@/types/history';
+import { isCacheId, isLocalId, parseCacheKeyFromId, resolveHistoryId } from '@/utils';
 import styles from './HistoryPage.module.css';
 
 export function HistoryPage() {
@@ -45,15 +46,38 @@ export function HistoryPage() {
       selectJob(paramJobId);
 
       // 检查是否在历史记录中
-      const existingJob = jobs.find((j) => j.jobId === paramJobId);
+      const existingJob = jobs.find((j) => resolveHistoryId(j) === paramJobId);
 
       if (!existingJob) {
+        if (isCacheId(paramJobId) || isLocalId(paramJobId)) {
+          const cacheKey = parseCacheKeyFromId(paramJobId);
+          if (cacheKey) {
+            const now = Date.now();
+            const newJob: HistoryJob = {
+              historyId: paramJobId,
+              jobId: undefined,
+              isCacheHit: true,
+              sourceType: 'url',
+              status: 'completed',
+              cacheKey,
+              cacheStatus: 'completed',
+              createdAt: now,
+              updatedAt: now,
+            };
+            addJob(newJob);
+          } else {
+            message.error('该记录为本地结果，请从历史列表查看');
+          }
+          return;
+        }
+
         // 不在历史中，尝试从 API 获取
         getJobStatus(paramJobId)
           .then((response) => {
             const data = response.data;
             // 添加到历史记录
             const newJob: HistoryJob = {
+              historyId: data.job_id,
               jobId: data.job_id,
               sourceType: 'url',
               status: data.status,
@@ -76,7 +100,7 @@ export function HistoryPage() {
   }, [paramJobId, jobs, selectJob, addJob]);
 
   // 获取当前选中的任务
-  const currentJob = jobs.find((j) => j.jobId === selectedJobId);
+  const currentJob = jobs.find((j) => resolveHistoryId(j) === selectedJobId);
 
   return (
     <div className={styles.page}>

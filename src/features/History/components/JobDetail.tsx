@@ -20,6 +20,7 @@ import { getJobStatus, getCacheEntry } from '@/api';
 import { useSettingsStore } from '@/stores';
 import { usePolling } from '@/hooks';
 import { formatTimestamp } from '@/utils/formatters';
+import { isCacheHistoryJob, resolveCacheKey, resolveHistoryId } from '@/utils';
 import type { HistoryJob } from '@/types/history';
 import type { CacheEntryResponse, JobStatusResponse, SummaryStatus } from '@/types/summary';
 import styles from './JobDetail.module.css';
@@ -76,6 +77,10 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
   const [cacheEntry, setCacheEntry] = useState<CacheEntryResponse | null>(null);
   const [cacheLoading, setCacheLoading] = useState(false);
   const [cacheError, setCacheError] = useState<string | null>(null);
+  const cacheKey = resolveCacheKey(job);
+  const historyId = resolveHistoryId(job);
+  const isCacheRecord = isCacheHistoryJob(job);
+  const canLoadStatus = !!job.jobId && !isCacheRecord;
 
   // 加载缓存信息
   const loadCacheEntry = useCallback(async (key: string) => {
@@ -84,19 +89,38 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
 
     try {
       const response = await getCacheEntry(key);
-      setCacheEntry(response.data);
+      const entry = response.data;
+      setCacheEntry(entry);
+
+      const summaryFromCache =
+        entry && typeof entry.summary_text === 'string' ? entry.summary_text : undefined;
+      if (summaryFromCache && !job.summaryText) {
+        onUpdate?.({
+          summaryText: summaryFromCache,
+          status: job.status === 'completed' ? job.status : 'completed',
+          cacheStatus: job.cacheStatus ?? 'completed',
+        });
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '缓存信息获取失败';
       setCacheError(errorMsg);
     } finally {
       setCacheLoading(false);
     }
-  }, []);
+  }, [onUpdate, job.summaryText, job.status, job.cacheStatus]);
 
   // 加载任务状态
   const loadStatus = useCallback(async () => {
+    const jobId = job.jobId;
+    if (!canLoadStatus) {
+      return undefined;
+    }
+    if (!jobId) {
+      return undefined;
+    }
+
     try {
-      const response = await getJobStatus(job.jobId);
+      const response = await getJobStatus(jobId);
       const data = response.data;
 
       // 更新历史记录
@@ -113,7 +137,7 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
       message.error('获取任务状态失败');
       throw err;
     }
-  }, [job.jobId, onUpdate]);
+  }, [job.jobId, onUpdate, canLoadStatus]);
 
   // 轮询处理
   const handlePollingData = useCallback((data?: JobStatusResponse) => {
@@ -141,7 +165,7 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
     setCacheLoading(false);
 
     // 如果任务正在运行，启动轮询
-    if (job.status === 'pending' || job.status === 'running') {
+    if (canLoadStatus && (job.status === 'pending' || job.status === 'running')) {
       loadStatus().then((data) => {
         if (data?.status === 'running' || data?.status === 'pending') {
           startPolling();
@@ -152,27 +176,33 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
     return () => {
       stopPolling();
     };
-  }, [job.jobId, job.status, loadStatus, startPolling, stopPolling]);
+  }, [job.jobId, job.status, loadStatus, startPolling, stopPolling, canLoadStatus]);
 
   // 加载缓存
   useEffect(() => {
     const canLoadCache =
-      job.cacheKey &&
-      (job.status === 'completed' || job.cacheStatus === 'completed');
+      cacheKey &&
+      (job.status === 'completed' || job.cacheStatus === 'completed' || isCacheRecord);
     if (canLoadCache) {
-      loadCacheEntry(job.cacheKey!);
+      loadCacheEntry(cacheKey!);
     }
-  }, [job.cacheKey, job.status, job.cacheStatus, loadCacheEntry]);
+  }, [cacheKey, job.status, job.cacheStatus, loadCacheEntry, isCacheRecord]);
 
   // 复制 Job ID
   const handleCopyJobId = useCallback(async () => {
+    const valueToCopy = job.jobId ?? historyId;
+    if (!valueToCopy) {
+      message.error('暂无可复制的 ID');
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(job.jobId);
-      message.success('已复制 Job ID');
+      await navigator.clipboard.writeText(valueToCopy);
+      message.success(job.jobId ? '已复制 Job ID' : '已复制记录 ID');
     } catch {
       message.error('复制失败');
     }
-  }, [job.jobId]);
+  }, [job.jobId, historyId]);
 
   // 复制摘要
   const handleCopySummary = useCallback(async () => {
@@ -192,25 +222,28 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
     const content = `# 视频摘要\n\n${job.summaryText}\n\n---\n*生成于 ${new Date().toLocaleString()}*`;
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
+    const exportId = job.jobId ?? historyId ?? 'summary';
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `summary-${job.jobId.slice(0, 8)}.md`;
+    link.download = `summary-${exportId.slice(0, 8)}.md`;
     link.click();
 
     URL.revokeObjectURL(url);
     message.success('已导出 Markdown 文件');
-  }, [job.summaryText, job.jobId]);
+  }, [job.summaryText, job.jobId, historyId]);
 
   // 刷新
   const handleRefresh = useCallback(() => {
-    loadStatus();
-    if (job.cacheKey && (job.status === 'completed' || job.cacheStatus === 'completed')) {
-      loadCacheEntry(job.cacheKey);
+    if (canLoadStatus) {
+      loadStatus();
     }
-  }, [loadStatus, job.cacheKey, job.status, job.cacheStatus, loadCacheEntry]);
+    if (cacheKey && (job.status === 'completed' || job.cacheStatus === 'completed' || isCacheRecord)) {
+      loadCacheEntry(cacheKey);
+    }
+  }, [loadStatus, cacheKey, job.status, job.cacheStatus, loadCacheEntry, canLoadStatus, isCacheRecord]);
 
-  const isRunning = job.status === 'pending' || job.status === 'running';
+  const isRunning = canLoadStatus && (job.status === 'pending' || job.status === 'running');
 
   // Tab 项配置
   const tabItems = [
@@ -301,21 +334,23 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
               </Tag>
             )}
 
-            <div className={styles.idContainer}>
-              <span className={styles.idLabel}>Job ID</span>
-              <span className={styles.idValue}>{job.jobId}</span>
-              <Button
-                type="text"
-                size="small"
-                icon={<CopyOutlined />}
-                onClick={handleCopyJobId}
-              />
-            </div>
+            {(job.jobId || historyId) && (
+              <div className={styles.idContainer}>
+                <span className={styles.idLabel}>{job.jobId ? 'Job ID' : '记录 ID'}</span>
+                <span className={styles.idValue}>{job.jobId ?? historyId}</span>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={handleCopyJobId}
+                />
+              </div>
+            )}
 
-            {job.cacheKey && (
+            {cacheKey && (
               <div className={styles.idContainer}>
                 <span className={styles.idLabel}>Cache Key</span>
-                <span className={styles.idValue}>{job.cacheKey}</span>
+                <span className={styles.idValue}>{cacheKey}</span>
               </div>
             )}
           </div>

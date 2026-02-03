@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HistoryJob } from '@/types/history';
 import { historyConfig } from '@/config/history';
+import { resolveHistoryId } from '@/utils';
 
 interface HistoryState {
   jobs: HistoryJob[];
@@ -32,7 +33,8 @@ export const useHistoryStore = create<HistoryState>()(
       addJob: (job) =>
         set((state) => {
           // 检查是否已存在（防止重复添加）
-          const exists = state.jobs.some((j) => j.jobId === job.jobId);
+          const incomingId = resolveHistoryId(job);
+          const exists = state.jobs.some((j) => resolveHistoryId(j) === incomingId);
           if (exists) {
             return state;
           }
@@ -60,8 +62,8 @@ export const useHistoryStore = create<HistoryState>()(
               ].slice(0, historyConfig.maxItems);
 
               const newSelectedJobId =
-                state.selectedJobId === existingJob.jobId
-                  ? job.jobId
+                state.selectedJobId === resolveHistoryId(existingJob)
+                  ? incomingId
                   : state.selectedJobId;
 
               return { jobs: newJobs, selectedJobId: newSelectedJobId };
@@ -77,7 +79,7 @@ export const useHistoryStore = create<HistoryState>()(
       updateJob: (jobId, updates) =>
         set((state) => ({
           jobs: state.jobs.map((job) =>
-            job.jobId === jobId
+            resolveHistoryId(job) === jobId
               ? { ...job, ...updates, updatedAt: Date.now() }
               : job
           ),
@@ -86,7 +88,7 @@ export const useHistoryStore = create<HistoryState>()(
       // 删除任务
       removeJob: (jobId) =>
         set((state) => ({
-          jobs: state.jobs.filter((job) => job.jobId !== jobId),
+          jobs: state.jobs.filter((job) => resolveHistoryId(job) !== jobId),
           selectedJobId:
             state.selectedJobId === jobId ? null : state.selectedJobId,
         })),
@@ -120,7 +122,10 @@ export function filterHistoryJobs(
   const lowerKeyword = keyword.toLowerCase();
   return jobs.filter((job) => {
     // 匹配 Job ID
-    if (job.jobId.toLowerCase().includes(lowerKeyword)) return true;
+    const idCandidate = resolveHistoryId(job);
+    if (idCandidate && idCandidate.toLowerCase().includes(lowerKeyword)) return true;
+    if (job.jobId?.toLowerCase().includes(lowerKeyword)) return true;
+    if (job.cacheKey?.toLowerCase().includes(lowerKeyword)) return true;
     // 匹配 URL
     if (job.sourceUrl?.toLowerCase().includes(lowerKeyword)) return true;
     // 匹配文件名

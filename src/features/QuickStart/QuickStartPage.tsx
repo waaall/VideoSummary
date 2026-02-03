@@ -39,11 +39,11 @@ export function QuickStartPage() {
           { sourceUrl: url }
         );
 
-        const jobId = data.job_id;
-        if (jobId) {
+        const historyId = data.history_id ?? data.job_id;
+        if (historyId) {
           const isCompleted = data.status === 'completed';
           message.success(isCompleted ? '处理完成，已进入历史任务' : '任务已提交，已进入历史任务');
-          navigate(`/history/${jobId}`);
+          navigate(`/history/${historyId}`);
         } else {
           message.success('任务已提交，请在历史任务中查看');
           navigate('/history');
@@ -73,11 +73,11 @@ export function QuickStartPage() {
           { fileName }
         );
 
-        const jobId = data.job_id;
-        if (jobId) {
+        const historyId = data.history_id ?? data.job_id;
+        if (historyId) {
           const isCompleted = data.status === 'completed';
           message.success(isCompleted ? '处理完成，已进入历史任务' : '任务已提交，已进入历史任务');
-          navigate(`/history/${jobId}`);
+          navigate(`/history/${historyId}`);
         } else {
           message.success('任务已提交，请在历史任务中查看');
           navigate('/history');

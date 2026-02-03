@@ -9,6 +9,7 @@ import { createSummary, getJobStatus } from '@/api';
 import { usePolling } from './usePolling';
 import type { SummaryCreateRequest, JobStatusResponse } from '@/types/summary';
 import type { HistoryJob } from '@/types/history';
+import { CACHE_ID_PREFIX, LOCAL_ID_PREFIX } from '@/utils';
 
 interface UseSummaryJobOptions {
   pollingInterval?: number;
@@ -98,14 +99,17 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
       const now = Date.now();
 
       if (data.status === 'completed') {
-        const resolvedJobId =
-          data.job_id ?? (data.cache_key ? `cache_${data.cache_key}` : `local_${now}`);
-        const normalized = { ...data, job_id: resolvedJobId };
+        const historyId =
+          data.job_id ??
+          (data.cache_key ? `${CACHE_ID_PREFIX}${data.cache_key}` : `${LOCAL_ID_PREFIX}${now}`);
+        const normalized = { ...data, job_id: data.job_id ?? undefined, history_id: historyId };
 
         completeFromSummary(normalized);
 
         const historyJob: HistoryJob = {
-          jobId: resolvedJobId,
+          historyId,
+          jobId: data.job_id ?? undefined,
+          isCacheHit: !data.job_id && !!data.cache_key,
           sourceType: request.source_type,
           sourceUrl: context?.sourceUrl ?? request.source_url,
           fileName: context?.fileName,
@@ -130,6 +134,7 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
 
       // 添加到历史记录
       const historyJob: HistoryJob = {
+        historyId: data.job_id,
         jobId: data.job_id,
         sourceType: request.source_type,
         sourceUrl: context?.sourceUrl ?? request.source_url,

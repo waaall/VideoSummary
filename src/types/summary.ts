@@ -16,6 +16,8 @@ export interface SummaryCreateResponse {
   cache_key: string;
   summary_text?: string | null;
   job_id?: string;
+  // 客户端字段：用于标识历史记录
+  history_id?: string;
   error?: string | null;
   created_at?: number;
 }
