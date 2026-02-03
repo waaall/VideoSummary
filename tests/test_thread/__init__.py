@@ -1,1 +1,0 @@
-"""Thread module tests."""

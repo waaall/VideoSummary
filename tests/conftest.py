@@ -370,15 +370,6 @@ def mock_llm_client(monkeypatch):
 
     monkeypatch.setattr("app.core.llm.client.get_llm_client", mock_get_client)
 
-    # Mock check_llm_connection to prevent real API calls
-    def mock_check_llm_connection(base_url, api_key, model):
-        """Mock LLM connection check - always returns success."""
-        return True, None
-
-    monkeypatch.setattr(
-        "app.thread.subtitle_thread.check_llm_connection", mock_check_llm_connection
-    )
-
     return mock_client
 
 
