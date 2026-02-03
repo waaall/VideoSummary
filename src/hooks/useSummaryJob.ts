@@ -4,15 +4,22 @@
  */
 
 import { useCallback } from 'react';
-import { useSummaryJobStore, useSettingsStore } from '@/stores';
+import { useSummaryJobStore, useSettingsStore, useHistoryStore } from '@/stores';
 import { createSummary, getJobStatus } from '@/api';
 import { usePolling } from './usePolling';
 import type { SummaryCreateRequest, JobStatusResponse } from '@/types/summary';
+import type { HistoryJob } from '@/types/history';
 
 interface UseSummaryJobOptions {
   pollingInterval?: number;
   onComplete?: (summaryText: string | null) => void;
   onError?: (error: string) => void;
+}
+
+// 用于传递给 submitSummary 的额外信息，记录到历史
+interface SubmitContext {
+  sourceUrl?: string;
+  fileName?: string;
 }
 
 export function useSummaryJob(options: UseSummaryJobOptions = {}) {
@@ -33,12 +40,22 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
   } = useSummaryJobStore();
 
   const pollingIntervalSetting = useSettingsStore((state) => state.pollingInterval);
+  const { addJob, updateJob } = useHistoryStore();
   const { onComplete, onError } = options;
   const pollingInterval = options.pollingInterval ?? pollingIntervalSetting;
 
   const handlePollingData = useCallback(
     (data: JobStatusResponse) => {
       updateFromJob(data);
+
+      // 同步更新历史记录
+      updateJob(data.job_id, {
+        status: data.status,
+        cacheKey: data.cache_key ?? undefined,
+        cacheStatus: data.cache_status ?? undefined,
+        summaryText: data.summary_text ?? undefined,
+        error: data.error ?? undefined,
+      });
 
       if (data.status === 'completed') {
         onComplete?.(data.summary_text ?? null);
@@ -53,7 +70,7 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
         onError?.(errorMsg);
       }
     },
-    [updateFromJob, onComplete, onError, failJob]
+    [updateFromJob, updateJob, onComplete, onError, failJob]
   );
 
   const { start: startPolling, stop: stopPolling } = usePolling({
@@ -75,25 +92,59 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
   });
 
   const submitSummary = useCallback(
-    async (request: SummaryCreateRequest) => {
+    async (request: SummaryCreateRequest, context?: SubmitContext) => {
       const response = await createSummary(request);
+      const data = response.data;
+      const now = Date.now();
 
-      if (response.status === 'completed') {
-        completeFromSummary(response);
-        onComplete?.(response.summary_text ?? null);
-        return response;
+      if (data.status === 'completed') {
+        completeFromSummary(data);
+        onComplete?.(data.summary_text ?? null);
+
+        // 缓存命中时也添加到历史
+        if (data.job_id) {
+          const historyJob: HistoryJob = {
+            jobId: data.job_id,
+            sourceType: request.source_type,
+            sourceUrl: context?.sourceUrl ?? request.source_url,
+            fileName: context?.fileName,
+            status: 'completed',
+            cacheKey: data.cache_key ?? undefined,
+            cacheStatus: 'completed',
+            summaryText: data.summary_text ?? undefined,
+            createdAt: data.created_at ?? now,
+            updatedAt: now,
+          };
+          addJob(historyJob);
+        }
+
+        return data;
       }
 
-      if (!response.job_id) {
+      if (!data.job_id) {
         throw new Error('响应缺少 job_id');
       }
 
-      startJob(response.job_id, response.cache_key, 'pending');
+      startJob(data.job_id, data.cache_key, 'pending');
+
+      // 添加到历史记录
+      const historyJob: HistoryJob = {
+        jobId: data.job_id,
+        sourceType: request.source_type,
+        sourceUrl: context?.sourceUrl ?? request.source_url,
+        fileName: context?.fileName,
+        status: 'pending',
+        cacheKey: data.cache_key ?? undefined,
+        createdAt: now,
+        updatedAt: now,
+      };
+      addJob(historyJob);
+
       startPolling();
 
-      return response;
+      return data;
     },
-    [completeFromSummary, onComplete, startJob, startPolling]
+    [completeFromSummary, onComplete, startJob, startPolling, addJob]
   );
 
   const handleReset = useCallback(() => {

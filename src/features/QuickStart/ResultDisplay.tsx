@@ -106,7 +106,7 @@ export function ResultDisplay({
 
   const handleViewDetail = useCallback(() => {
     if (jobId) {
-      navigate(`/execution/${jobId}`);
+      navigate(`/history/${jobId}`);
     }
   }, [jobId, navigate]);
 

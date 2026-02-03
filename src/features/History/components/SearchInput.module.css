@@ -1,0 +1,26 @@
+/**
+ * 搜索框样式
+ */
+
+.container {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.input {
+  width: 100%;
+  background: var(--color-bg-tertiary);
+  border-color: transparent;
+  transition: all 0.2s;
+}
+
+.input:hover,
+.input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-bg-primary);
+}
+
+.icon {
+  color: var(--color-text-tertiary);
+}

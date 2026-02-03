@@ -3,3 +3,4 @@
  */
 export { useSettingsStore, getResolvedTheme, setupThemeListener, getUploadMaxFileSizeBytes } from './settingsStore';
 export { useSummaryJobStore } from './summaryJobStore';
+export { useHistoryStore, filterHistoryJobs } from './historyStore';

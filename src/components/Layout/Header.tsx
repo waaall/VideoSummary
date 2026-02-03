@@ -35,7 +35,7 @@ const LogoIcon = () => (
 // 导航项配置
 const navItems = [
   { path: '/', label: '快速开始' },
-  { path: '/execution', label: '执行监控' },
+  { path: '/history', label: '历史任务' },
   { path: '/settings', label: '设置' },
 ];
 
@@ -54,7 +54,6 @@ export function Header() {
         {/* 导航链接 */}
         <nav className={styles.nav}>
           {navItems.map(({ path, label }) => {
-            // 处理执行监控页面的路由匹配
             const isActive = path === '/'
               ? location.pathname === '/'
               : location.pathname.startsWith(path);

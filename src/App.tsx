@@ -15,8 +15,8 @@ import { getAntdThemeToken } from '@/config/theme';
 const QuickStartPage = lazy(() =>
   import('@/features/QuickStart').then((m) => ({ default: m.QuickStartPage }))
 );
-const ExecutionPage = lazy(() =>
-  import('@/features/Execution').then((m) => ({ default: m.ExecutionPage }))
+const HistoryPage = lazy(() =>
+  import('@/features/History').then((m) => ({ default: m.HistoryPage }))
 );
 const SettingsPage = lazy(() =>
   import('@/features/Settings').then((m) => ({ default: m.SettingsPage }))
@@ -59,9 +59,9 @@ export default function App() {
                   {/* 快速开始 */}
                   <Route path="/" element={<QuickStartPage />} />
 
-                  {/* 执行监控 */}
-                  <Route path="/execution" element={<ExecutionPage />} />
-                  <Route path="/execution/:runId" element={<ExecutionPage />} />
+                  {/* 历史任务 */}
+                  <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/history/:jobId" element={<HistoryPage />} />
 
                   {/* 设置 */}
                   <Route path="/settings" element={<SettingsPage />} />

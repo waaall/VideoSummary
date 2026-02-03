@@ -3,3 +3,4 @@
  */
 export * from './summary';
 export * from './upload';
+export * from './history';

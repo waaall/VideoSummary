@@ -1,0 +1,55 @@
+/**
+ * 空状态组件样式
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xxl) var(--spacing-lg);
+  min-height: 400px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.actions {
+  margin-top: var(--spacing-lg);
+}
+
+.divider {
+  width: 200px;
+  min-width: 200px;
+  margin: var(--spacing-lg) 0;
+  color: var(--color-text-tertiary);
+  font-size: 0.75rem;
+}
+
+.searchSection {
+  width: 100%;
+  max-width: 360px;
+}
+
+.searchInput {
+  width: 100%;
+}
+
+.searchInput :global(.ant-input-group-addon) {
+  padding: 0;
+}
+
+.searchInput :global(.ant-btn) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

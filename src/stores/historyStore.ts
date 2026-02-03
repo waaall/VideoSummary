@@ -1,0 +1,101 @@
+/**
+ * 历史记录状态管理（带持久化）
+ */
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { HistoryJob } from '@/types/history';
+import { historyConfig } from '@/config/history';
+
+interface HistoryState {
+  jobs: HistoryJob[];
+  selectedJobId: string | null;
+  searchKeyword: string;
+
+  // 操作方法
+  addJob: (job: HistoryJob) => void;
+  updateJob: (jobId: string, updates: Partial<HistoryJob>) => void;
+  removeJob: (jobId: string) => void;
+  selectJob: (jobId: string | null) => void;
+  setSearchKeyword: (keyword: string) => void;
+  clearHistory: () => void;
+}
+
+export const useHistoryStore = create<HistoryState>()(
+  persist(
+    (set) => ({
+      jobs: [],
+      selectedJobId: null,
+      searchKeyword: '',
+
+      // 添加任务
+      addJob: (job) =>
+        set((state) => {
+          // 检查是否已存在（防止重复添加）
+          const exists = state.jobs.some((j) => j.jobId === job.jobId);
+          if (exists) {
+            return state;
+          }
+
+          // 添加到队首，并限制总数
+          const newJobs = [job, ...state.jobs].slice(0, historyConfig.maxItems);
+          return { jobs: newJobs };
+        }),
+
+      // 更新任务
+      updateJob: (jobId, updates) =>
+        set((state) => ({
+          jobs: state.jobs.map((job) =>
+            job.jobId === jobId
+              ? { ...job, ...updates, updatedAt: Date.now() }
+              : job
+          ),
+        })),
+
+      // 删除任务
+      removeJob: (jobId) =>
+        set((state) => ({
+          jobs: state.jobs.filter((job) => job.jobId !== jobId),
+          selectedJobId:
+            state.selectedJobId === jobId ? null : state.selectedJobId,
+        })),
+
+      // 选中任务
+      selectJob: (jobId) => set({ selectedJobId: jobId }),
+
+      // 设置搜索关键词
+      setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
+
+      // 清空历史
+      clearHistory: () => set({ jobs: [], selectedJobId: null }),
+    }),
+    {
+      name: historyConfig.storageKey,
+      // 只持久化 jobs 数组
+      partialize: (state) => ({ jobs: state.jobs }),
+    }
+  )
+);
+
+// 辅助方法：过滤历史记录
+export function filterHistoryJobs(
+  jobs: HistoryJob[],
+  keyword: string
+): HistoryJob[] {
+  if (!keyword.trim()) {
+    return jobs;
+  }
+
+  const lowerKeyword = keyword.toLowerCase();
+  return jobs.filter((job) => {
+    // 匹配 Job ID
+    if (job.jobId.toLowerCase().includes(lowerKeyword)) return true;
+    // 匹配 URL
+    if (job.sourceUrl?.toLowerCase().includes(lowerKeyword)) return true;
+    // 匹配文件名
+    if (job.fileName?.toLowerCase().includes(lowerKeyword)) return true;
+    // 匹配标题
+    if (job.title?.toLowerCase().includes(lowerKeyword)) return true;
+    return false;
+  });
+}

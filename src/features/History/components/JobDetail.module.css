@@ -1,36 +1,35 @@
 /**
- * 执行监控页面样式
+ * 任务详情样式
  */
 
-.page {
+.container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  animation: fadeIn 0.3s ease-out;
 }
 
-/* 空状态 */
-.emptyContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xxl);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* 页面头部 */
+/* 头部 */
 .header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-}
-
-.backButton {
-  color: var(--color-text-secondary);
+  justify-content: space-between;
 }
 
 .title {
-  flex: 1;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
@@ -57,22 +56,23 @@
 }
 
 .statusTag {
+  width: fit-content;
   font-size: 0.875rem;
   padding: 4px 12px;
 }
 
-.runIdContainer {
+.idContainer {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.runIdLabel {
+.idLabel {
   font-size: 0.75rem;
   color: var(--color-text-tertiary);
 }
 
-.runIdValue {
+.idValue {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   padding: 2px 8px;
@@ -83,7 +83,8 @@
 
 .statusMeta {
   display: flex;
-  gap: var(--spacing-lg);
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
 .metaItem {
@@ -94,6 +95,10 @@
 .metaItem strong {
   font-family: var(--font-mono);
   color: var(--color-text-primary);
+}
+
+.urlValue {
+  word-break: break-all;
 }
 
 /* 错误区域 */
@@ -126,7 +131,18 @@
   border: 1px solid var(--color-border);
 }
 
-/* 摘要内容 */
+/* 摘要区域 */
+.summarySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.summaryActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .summaryContent {
   padding: var(--spacing-lg);
   background: var(--color-bg-tertiary);
@@ -139,22 +155,7 @@
 
 /* 响应式 */
 @media (max-width: 640px) {
-  .header {
-    flex-wrap: wrap;
-  }
-
-  .title {
-    order: -1;
-    width: 100%;
-    margin-bottom: var(--spacing-sm);
-  }
-
   .statusHeader {
     flex-direction: column;
-  }
-
-  .statusMeta {
-    flex-direction: column;
-    gap: var(--spacing-sm);
   }
 }

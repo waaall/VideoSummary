@@ -45,11 +45,14 @@ export function QuickStartPage() {
       reset();
 
       try {
-        await submitSummary({
-          source_type: 'url',
-          source_url: url,
-          refresh,
-        });
+        await submitSummary(
+          {
+            source_type: 'url',
+            source_url: url,
+            refresh,
+          },
+          { sourceUrl: url }
+        );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);
@@ -60,16 +63,19 @@ export function QuickStartPage() {
   );
 
   const handleLocalSubmit = useCallback(
-    async (fileId: string, refresh: boolean) => {
+    async (fileId: string, refresh: boolean, fileName?: string) => {
       setSubmitting(true);
       reset();
 
       try {
-        await submitSummary({
-          source_type: 'local',
-          file_id: fileId,
-          refresh,
-        });
+        await submitSummary(
+          {
+            source_type: 'local',
+            file_id: fileId,
+            refresh,
+          },
+          { fileName }
+        );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : '请求失败';
         message.error(errorMsg);

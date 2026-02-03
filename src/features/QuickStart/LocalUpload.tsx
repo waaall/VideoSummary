@@ -24,7 +24,7 @@ interface UploadedFile {
 }
 
 interface LocalUploadProps {
-  onSubmit: (fileId: string, refresh: boolean) => void;
+  onSubmit: (fileId: string, refresh: boolean, fileName?: string) => void;
   loading?: boolean;
 }
 
@@ -72,7 +72,7 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
       return;
     }
 
-    onSubmit(uploadedFile.fileId, refresh);
+    onSubmit(uploadedFile.fileId, refresh, uploadedFile.name);
   }, [uploadedFile, onSubmit, refresh]);
 
   const handleUpload = useCallback(
