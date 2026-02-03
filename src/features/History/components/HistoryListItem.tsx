@@ -63,6 +63,7 @@ export function HistoryListItem({
 
   // 获取显示标题
   const displayTitle =
+    job.sourceName ||
     job.title ||
     job.fileName ||
     (job.sourceUrl ? new URL(job.sourceUrl).hostname : null) ||
@@ -71,8 +72,8 @@ export function HistoryListItem({
   // 获取来源描述
   const sourceDesc =
     job.sourceType === 'url'
-      ? job.sourceUrl || 'URL 视频'
-      : job.fileName || '本地文件';
+      ? job.sourceUrl || job.sourceName || 'URL 视频'
+      : job.fileName || job.sourceName || '本地文件';
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();

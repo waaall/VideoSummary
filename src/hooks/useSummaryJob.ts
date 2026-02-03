@@ -54,6 +54,7 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
         status: data.status,
         cacheKey: data.cache_key ?? undefined,
         cacheStatus: data.cache_status ?? undefined,
+        sourceName: data.source_name ?? undefined,
         summaryText: data.summary_text ?? undefined,
         error: data.error ?? undefined,
       });
@@ -113,6 +114,7 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
           sourceType: request.source_type,
           sourceUrl: context?.sourceUrl ?? request.source_url,
           fileName: context?.fileName,
+          sourceName: request.source_type === 'local' ? context?.fileName : undefined,
           status: 'completed',
           cacheKey: data.cache_key ?? undefined,
           cacheStatus: 'completed',
@@ -139,6 +141,7 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
         sourceType: request.source_type,
         sourceUrl: context?.sourceUrl ?? request.source_url,
         fileName: context?.fileName,
+        sourceName: request.source_type === 'local' ? context?.fileName : undefined,
         status: 'pending',
         cacheKey: data.cache_key ?? undefined,
         createdAt: now,

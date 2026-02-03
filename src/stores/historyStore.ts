@@ -132,6 +132,8 @@ export function filterHistoryJobs(
     if (job.fileName?.toLowerCase().includes(lowerKeyword)) return true;
     // 匹配标题
     if (job.title?.toLowerCase().includes(lowerKeyword)) return true;
+    // 匹配来源名称
+    if (job.sourceName?.toLowerCase().includes(lowerKeyword)) return true;
     return false;
   });
 }

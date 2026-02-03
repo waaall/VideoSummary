@@ -92,14 +92,23 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
       const entry = response.data;
       setCacheEntry(entry);
 
+      const sourceNameFromCache =
+        entry && typeof entry.source_name === 'string' ? entry.source_name : undefined;
       const summaryFromCache =
         entry && typeof entry.summary_text === 'string' ? entry.summary_text : undefined;
-      if (summaryFromCache && !job.summaryText) {
-        onUpdate?.({
-          summaryText: summaryFromCache,
-          status: job.status === 'completed' ? job.status : 'completed',
-          cacheStatus: job.cacheStatus ?? 'completed',
-        });
+      const shouldUpdateSummary = !!summaryFromCache && !job.summaryText;
+      const shouldUpdateSourceName = !!sourceNameFromCache;
+      if (shouldUpdateSummary || shouldUpdateSourceName) {
+        const updates: Partial<HistoryJob> = {};
+        if (shouldUpdateSummary) {
+          updates.summaryText = summaryFromCache;
+          updates.status = job.status === 'completed' ? job.status : 'completed';
+          updates.cacheStatus = job.cacheStatus ?? 'completed';
+        }
+        if (shouldUpdateSourceName) {
+          updates.sourceName = sourceNameFromCache;
+        }
+        onUpdate?.(updates);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '缓存信息获取失败';
@@ -128,6 +137,7 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
         status: data.status,
         cacheKey: data.cache_key ?? undefined,
         cacheStatus: data.cache_status ?? undefined,
+        sourceName: data.source_name ?? undefined,
         summaryText: data.summary_text ?? undefined,
         error: data.error ?? undefined,
       });

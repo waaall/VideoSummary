@@ -83,6 +83,7 @@ export function HistoryPage() {
               status: data.status,
               cacheKey: data.cache_key ?? undefined,
               cacheStatus: data.cache_status ?? undefined,
+              sourceName: data.source_name ?? undefined,
               summaryText: data.summary_text ?? undefined,
               error: data.error ?? undefined,
               createdAt: data.created_at ?? Date.now(),

@@ -25,6 +25,7 @@ export interface SummaryCreateResponse {
 export interface JobStatusResponse {
   job_id: string;
   cache_key?: string | null;
+  source_name?: string | null;
   status: SummaryStatus;
   cache_status?: SummaryStatus | 'unknown' | null;
   summary_text?: string | null;
@@ -42,9 +43,14 @@ export interface CacheLookupRequest {
 export interface CacheLookupResponse {
   status: 'hit' | 'miss';
   cache_key?: string | null;
+  source_name?: string | null;
 }
 
-export type CacheEntryResponse = Record<string, unknown>;
+export interface CacheEntryResponse {
+  source_name?: string | null;
+  summary_text?: string | null;
+  [key: string]: unknown;
+}
 
 export interface CacheDeleteResponse {
   cache_key: string;

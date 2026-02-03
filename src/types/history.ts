@@ -10,6 +10,7 @@ export interface HistoryJob {
   sourceType: 'url' | 'local';
   sourceUrl?: string;
   fileName?: string;
+  sourceName?: string;
   title?: string;
   status: SummaryStatus | 'idle';
   cacheKey?: string;
