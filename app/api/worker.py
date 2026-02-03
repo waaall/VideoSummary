@@ -404,7 +404,12 @@ class JobQueue:
 
             summary_text = ctx.summary_text
             if not self._is_summary_text_valid(summary_text):
-                raise RuntimeError("summary_invalid")
+                error_detail = ctx.get("summary_error")
+                if not error_detail and isinstance(summary_text, str):
+                    stripped = summary_text.strip()
+                    if stripped:
+                        error_detail = stripped
+                raise RuntimeError(error_detail or "summary_invalid")
 
             self._validate_summary_json(tmp_dir, profile.profile_version)
 
