@@ -12,6 +12,8 @@ import {
   CopyOutlined,
   FileMarkdownOutlined,
 } from '@ant-design/icons';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { JobProgress } from './JobProgress';
 import { CacheViewer } from './CacheViewer';
 import { getJobStatus, getCacheEntry } from '@/api';
@@ -253,7 +255,13 @@ export function JobDetail({ job, onUpdate }: JobDetailProps) {
                     </Tooltip>
                   </Space>
                 </div>
-                <div className={styles.summaryContent}>{job.summaryText}</div>
+                <div className={styles.summaryContent}>
+                  <div className={styles.markdown}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {job.summaryText}
+                    </ReactMarkdown>
+                  </div>
+                </div>
               </div>
             ),
           },
