@@ -169,16 +169,26 @@ class FileStorage:
     def _load_from_store(self) -> None:
         """从 SQLite 恢复上传记录"""
         now = time.time()
-        loaded: Dict[str, UploadedFile] = {}
-        for record in self.store.list_uploads():
+        records = self.store.list_uploads()
+        active_paths: Set[str] = set()
+        for record in records:
             created_at = float(record.get("created_at", 0))
             ttl_seconds = int(record.get("ttl_seconds", self.ttl_seconds))
-            if created_at + ttl_seconds < now:
+            if created_at + ttl_seconds >= now:
                 stored_path = Path(record.get("stored_path", ""))
-                self._cleanup_physical_file(stored_path)
+                if stored_path.exists():
+                    active_paths.add(str(stored_path))
+
+        loaded: Dict[str, UploadedFile] = {}
+        for record in records:
+            created_at = float(record.get("created_at", 0))
+            ttl_seconds = int(record.get("ttl_seconds", self.ttl_seconds))
+            stored_path = Path(record.get("stored_path", ""))
+            if created_at + ttl_seconds < now:
+                if str(stored_path) not in active_paths:
+                    self._cleanup_physical_file(stored_path)
                 self._delete_record(record.get("file_id"))
                 continue
-            stored_path = Path(record.get("stored_path", ""))
             if not stored_path.exists():
                 self.store.delete_upload(record.get("file_id", ""))
                 continue
@@ -218,6 +228,33 @@ class FileStorage:
         if len(name) > 200:
             name = name[:200]
         return name + ext
+
+    def _find_reusable_record(self, file_hash: str, file_type: str):
+        """查找可复用的上传记录（按 file_hash + file_type）"""
+        now = time.time()
+        for record in self.store.list_uploads_by_hash(file_hash):
+            created_at = float(record.get("created_at", 0))
+            ttl_seconds = int(record.get("ttl_seconds", self.ttl_seconds))
+            if created_at + ttl_seconds < now:
+                continue
+            if record.get("file_type") != file_type:
+                continue
+            stored_path = Path(record.get("stored_path", ""))
+            if not stored_path.exists():
+                continue
+            return record
+        return None
+
+    def _has_other_live_record_for_path_locked(
+        self, stored_path: Path, exclude_file_id: str
+    ) -> bool:
+        """判断是否存在其他未过期记录共享同一物理文件（需在锁内调用）"""
+        for file_id, uploaded in self._files.items():
+            if file_id == exclude_file_id:
+                continue
+            if uploaded.stored_path == stored_path and not uploaded.is_expired():
+                return True
+        return False
 
     def _detect_file_type(
         self, filename: str, content_type: Optional[str]
@@ -289,19 +326,24 @@ class FileStorage:
         # 类型校验
         file_type, mime_type = self._detect_file_type(original_name, content_type)
 
-        # 生成 file_id 和安全路径
+        # 生成 file_id
         file_id = self._generate_file_id()
-        safe_name = self._sanitize_filename(original_name)
 
-        # 存储路径：uploads/{file_id}/{safe_name}
-        file_dir = self.upload_dir / file_id
-        file_dir.mkdir(parents=True, exist_ok=True)
-        stored_path = file_dir / safe_name
-
-        # 写入文件
-        stored_path.write_bytes(content)
-
+        # 先计算 hash，查找可复用记录
         file_hash = hashlib.sha256(content).hexdigest()
+        reusable = self._find_reusable_record(file_hash, file_type)
+
+        if reusable:
+            stored_path = Path(reusable.get("stored_path", ""))
+        else:
+            # 存储路径：uploads/{file_id}/{safe_name}
+            safe_name = self._sanitize_filename(original_name)
+            file_dir = self.upload_dir / file_id
+            file_dir.mkdir(parents=True, exist_ok=True)
+            stored_path = file_dir / safe_name
+
+            # 写入文件
+            stored_path.write_bytes(content)
 
         # 创建元数据记录
         uploaded_file = UploadedFile(
@@ -397,6 +439,11 @@ class FileStorage:
             raise
 
         file_hash = hasher.hexdigest()
+        reusable = self._find_reusable_record(file_hash, file_type)
+        if reusable:
+            # 删除刚写入的重复文件，复用已有 stored_path
+            self._cleanup_physical_file(stored_path)
+            stored_path = Path(reusable.get("stored_path", ""))
 
         uploaded_file = UploadedFile(
             file_id=file_id,
@@ -553,8 +600,11 @@ class FileStorage:
 
         uploaded_file = self._files[file_id]
 
-        # 删除物理文件
-        self._cleanup_physical_file(uploaded_file.stored_path)
+        # 删除物理文件（若无其他记录共享同一路径）
+        if not self._has_other_live_record_for_path_locked(
+            uploaded_file.stored_path, file_id
+        ):
+            self._cleanup_physical_file(uploaded_file.stored_path)
 
         # 从映射表移除 + 持久化删除
         del self._files[file_id]

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tempfile
+import asyncio
 from pathlib import Path
 from unittest.mock import patch
 
@@ -90,6 +91,82 @@ class TestFileStorage:
 
         assert result.file_type == "subtitle"
         assert result.stored_path.exists()
+
+    def test_dedupe_reuse_stored_path(self, storage):
+        """测试相同内容复用已有存储路径"""
+        content = b"same content"
+        first = storage.save(
+            content=content,
+            original_name="first.mp4",
+            content_type="video/mp4",
+        )
+        second = storage.save(
+            content=content,
+            original_name="second.mp4",
+            content_type="video/mp4",
+        )
+
+        assert first.file_id != second.file_id
+        assert first.stored_path == second.stored_path
+        assert first.stored_path.exists()
+        assert not (storage.upload_dir / second.file_id).exists()
+
+    def test_dedupe_stream_reuse_stored_path(self, storage):
+        """测试流式上传复用已有存储路径"""
+        content = b"stream content"
+
+        def make_reader(data: bytes, chunk_size: int = 4):
+            chunks = [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+
+            async def read_chunk(_size: int):
+                if chunks:
+                    return chunks.pop(0)
+                return b""
+
+            return read_chunk
+
+        first = asyncio.run(
+            storage.save_stream(
+                read_chunk=make_reader(content),
+                original_name="stream.mp4",
+                content_type="video/mp4",
+            )
+        )
+        second = asyncio.run(
+            storage.save_stream(
+                read_chunk=make_reader(content),
+                original_name="stream.mp4",
+                content_type="video/mp4",
+            )
+        )
+
+        assert first.file_id != second.file_id
+        assert first.stored_path == second.stored_path
+        assert first.stored_path.exists()
+        assert not (storage.upload_dir / second.file_id).exists()
+
+    def test_dedupe_delete_shared_file(self, storage):
+        """测试共享路径仅在最后删除时清理物理文件"""
+        content = b"same content for delete"
+        first = storage.save(
+            content=content,
+            original_name="a.mp4",
+            content_type="video/mp4",
+        )
+        second = storage.save(
+            content=content,
+            original_name="b.mp4",
+            content_type="video/mp4",
+        )
+
+        shared_path = first.stored_path
+        assert shared_path.exists()
+
+        storage.delete(first.file_id)
+        assert shared_path.exists()
+
+        storage.delete(second.file_id)
+        assert not shared_path.exists()
 
     def test_reject_unsupported_file_type(self, storage):
         """测试拒绝不支持的文件类型"""

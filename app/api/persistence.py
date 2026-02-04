@@ -457,15 +457,27 @@ class SQLiteStore:
                 (file_hash, file_id),
             )
 
-    def get_upload_by_hash(self, file_hash: str) -> Optional[Dict[str, Any]]:
-        """按文件 hash 查询上传记录"""
+    def list_uploads_by_hash(self, file_hash: str) -> List[Dict[str, Any]]:
+        """按文件 hash 查询上传记录（按创建时间倒序）"""
         with self._lock:
-            row = self._conn.execute(
-                "SELECT * FROM uploads WHERE file_hash = ?", (file_hash,)
-            ).fetchone()
-        if not row:
+            rows = self._conn.execute(
+                "SELECT * FROM uploads WHERE file_hash = ? ORDER BY created_at DESC",
+                (file_hash,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_upload_by_hash(self, file_hash: str) -> Optional[Dict[str, Any]]:
+        """按文件 hash 查询上传记录（优先返回未过期的记录）"""
+        records = self.list_uploads_by_hash(file_hash)
+        if not records:
             return None
-        return dict(row)
+        now = time.time()
+        for record in records:
+            created_at = float(record.get("created_at", 0))
+            ttl_seconds = int(record.get("ttl_seconds", 0))
+            if created_at + ttl_seconds >= now:
+                return record
+        return None
 
 
 _store: Optional[SQLiteStore] = None
