@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <title>VideoSummary - 智能视频摘要</title>
@@ -13,11 +13,8 @@
     <!-- 主题初始化脚本：防止闪烁 -->
     <script>
       (function() {
-        const nsRaw = '%VITE_STORAGE_NS%';
-        const storageNamespace = nsRaw && !nsRaw.includes('VITE_STORAGE_NS')
-          ? nsRaw
-          : 'video';
-        const settingsKey = storageNamespace + ':video-summary-settings';
+        // 由 vite.config.ts 在构建/开发时注入，默认值为 "video"
+        var settingsKey = '__APP_STORAGE_NS__:video-summary-settings';
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         let themeMode = 'system';
 
@@ -43,6 +40,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="%BASE_URL%src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

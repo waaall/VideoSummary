@@ -14,13 +14,26 @@ function normalizeBasePath(input?: string): string {
     : `${withLeadingSlash}/`;
 }
 
+function normalizeStorageNamespace(input?: string): string {
+  const value = (input || 'video').trim();
+  return value || 'video';
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const base = normalizeBasePath(env.VITE_BASE_PATH);
+  const storageNamespace = normalizeStorageNamespace(env.VITE_STORAGE_NS);
+
+  const injectRuntimeValuesPlugin = {
+    name: 'inject-runtime-values',
+    transformIndexHtml(html: string) {
+      return html.replace(/__APP_STORAGE_NS__/g, storageNamespace);
+    },
+  };
 
   return {
     base,
-    plugins: [react()],
+    plugins: [react(), injectRuntimeValuesPlugin],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
