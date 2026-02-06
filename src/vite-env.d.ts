@@ -4,6 +4,16 @@
  * 环境变量类型声明
  */
 interface ImportMetaEnv {
+  /** 前端打包基路径（Vite base） */
+  readonly VITE_BASE_PATH?: string;
+  /** 路由 basename */
+  readonly VITE_ROUTER_BASENAME?: string;
+  /** 是否作为 Portal 子应用挂载 */
+  readonly VITE_EMBEDDED?: string;
+  /** 浏览器存储命名空间 */
+  readonly VITE_STORAGE_NS?: string;
+  /** Cookie Path */
+  readonly VITE_COOKIE_PATH?: string;
   /** API 基础地址 */
   readonly VITE_API_BASE_URL?: string;
   /** API 请求超时时间（毫秒） */

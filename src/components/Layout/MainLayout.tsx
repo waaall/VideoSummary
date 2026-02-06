@@ -8,12 +8,13 @@ import styles from './MainLayout.module.css';
 
 interface MainLayoutProps {
   children: ReactNode;
+  embedded?: boolean;
 }
 
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children, embedded = false }: MainLayoutProps) {
   return (
     <div className={styles.layout}>
-      <Header />
+      {!embedded && <Header />}
       <main className={styles.main}>
         <div className={styles.content}>{children}</div>
       </main>

@@ -3,10 +3,11 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { HistoryJob } from '@/types/history';
 import { historyConfig } from '@/config/history';
 import { resolveHistoryId } from '@/utils/historyJob';
+import { appStateStorage } from '@/utils/storage';
 
 interface HistoryState {
   jobs: HistoryJob[];
@@ -104,6 +105,7 @@ export const useHistoryStore = create<HistoryState>()(
     }),
     {
       name: historyConfig.storageKey,
+      storage: createJSONStorage(() => appStateStorage),
       // 只持久化 jobs 数组
       partialize: (state) => ({ jobs: state.jobs }),
     }

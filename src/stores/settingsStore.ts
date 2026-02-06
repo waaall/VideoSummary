@@ -3,9 +3,10 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ThemeMode } from '@/config/theme';
 import { apiConfig, defaultUiSettings } from '@/config/app';
+import { appStateStorage } from '@/utils/storage';
 
 interface SettingsState {
   // 主题设置
@@ -66,6 +67,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'video-summary-settings',
+      storage: createJSONStorage(() => appStateStorage),
       partialize: (state) => ({
         themeMode: state.themeMode,
         apiBaseUrl: state.apiBaseUrl,

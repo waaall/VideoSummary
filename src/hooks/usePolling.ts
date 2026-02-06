@@ -32,6 +32,7 @@ export function usePolling<T>({
   const timeoutRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const stoppedRef = useRef(false);
+  const pollRef = useRef<() => Promise<void>>(async () => {});
 
   const poll = useCallback(async () => {
     if (!mountedRef.current || stoppedRef.current || !enabled) return;
@@ -50,21 +51,29 @@ export function usePolling<T>({
       }
 
       // 安排下一次轮询
-      timeoutRef.current = window.setTimeout(poll, interval);
+      timeoutRef.current = window.setTimeout(() => {
+        void pollRef.current();
+      }, interval);
     } catch (error) {
       if (!mountedRef.current) return;
 
       onError?.(error instanceof Error ? error : new Error(String(error)));
 
       // 发生错误时继续轮询（可能是暂时性错误）
-      timeoutRef.current = window.setTimeout(poll, interval);
+      timeoutRef.current = window.setTimeout(() => {
+        void pollRef.current();
+      }, interval);
     }
   }, [fetcher, onData, onError, shouldStop, interval, enabled]);
+
+  useEffect(() => {
+    pollRef.current = poll;
+  }, [poll]);
 
   // 启动轮询
   const start = useCallback(() => {
     stoppedRef.current = false;
-    poll();
+    void poll();
   }, [poll]);
 
   // 停止轮询

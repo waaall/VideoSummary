@@ -3,6 +3,8 @@
  * 集中管理环境变量和常量配置
  */
 
+import { runtimeConfig } from './runtime';
+
 // API 配置
 export const apiConfig = {
   // 基础 URL，支持环境变量覆盖
@@ -34,6 +36,9 @@ export const defaultUiSettings = {
 
 // 应用元信息
 export const appMeta = {
+  appId: 'video',
+  displayName: 'VideoSummary',
+  routeBase: runtimeConfig.routerBasename,
   name: 'VideoSummary',
   version: '0.1.0',
   description: '智能视频摘要工具',

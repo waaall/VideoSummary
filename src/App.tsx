@@ -9,6 +9,7 @@ import zhCN from 'antd/locale/zh_CN';
 import { MainLayout } from '@/components/Layout/MainLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { runtimeConfig } from '@/config/runtime';
 import {
   useSettingsStore,
   getResolvedTheme,
@@ -63,8 +64,8 @@ export default function App() {
     <ConfigProvider theme={antdThemeConfig} locale={zhCN}>
       <AntdApp>
         <ErrorBoundary>
-          <BrowserRouter>
-            <MainLayout>
+          <BrowserRouter basename={runtimeConfig.routerBasename}>
+            <MainLayout embedded={runtimeConfig.embedded}>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* 快速开始 */}

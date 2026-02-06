@@ -4,3 +4,5 @@
 export * from './formatters';
 export * from './historyJob';
 export * from './validators';
+export * from './storage';
+export * from './cookie';
