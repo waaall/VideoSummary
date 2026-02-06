@@ -14,7 +14,7 @@ interface MainLayoutProps {
 export function MainLayout({ children, embedded = false }: MainLayoutProps) {
   return (
     <div className={styles.layout}>
-      {!embedded && <Header />}
+      <Header embedded={embedded} />
       <main className={styles.main}>
         <div className={styles.content}>{children}</div>
       </main>

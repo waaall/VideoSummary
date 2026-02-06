@@ -32,28 +32,40 @@ const LogoIcon = () => (
   </svg>
 );
 
-// 导航项配置
-const navItems = [
+// 业务导航项（在 standalone 和 embedded 都保留）
+const businessNavItems = [
   { path: '/', label: '快速开始' },
   { path: '/history', label: '历史任务' },
   { path: '/settings', label: '设置' },
 ];
 
-export function Header() {
+interface HeaderProps {
+  embedded?: boolean;
+}
+
+export function Header({ embedded = false }: HeaderProps) {
   const location = useLocation();
+  const containerClassName = embedded
+    ? `${styles.container} ${styles.containerEmbedded}`
+    : styles.container;
+  const navClassName = embedded
+    ? `${styles.nav} ${styles.navEmbedded}`
+    : styles.nav;
 
   return (
     <header className={styles.header}>
-      <div className={styles.container}>
-        {/* Logo 和标题 */}
-        <Link to="/" className={styles.logo}>
-          <LogoIcon />
-          <span className={styles.title}>{appMeta.name}</span>
-        </Link>
+      <div className={containerClassName}>
+        {!embedded && (
+          // 全局项：Logo 和应用标题由 standalone 负责展示
+          <Link to="/" className={styles.logo}>
+            <LogoIcon />
+            <span className={styles.title}>{appMeta.name}</span>
+          </Link>
+        )}
 
-        {/* 导航链接 */}
-        <nav className={styles.nav}>
-          {navItems.map(({ path, label }) => {
+        {/* 业务项：应用内导航在双模式都展示 */}
+        <nav className={navClassName}>
+          {businessNavItems.map(({ path, label }) => {
             const isActive = path === '/'
               ? location.pathname === '/'
               : location.pathname.startsWith(path);
@@ -70,10 +82,12 @@ export function Header() {
           })}
         </nav>
 
-        {/* 右侧操作区 */}
-        <div className={styles.actions}>
-          <ThemeToggle />
-        </div>
+        {!embedded && (
+          // 全局项：主题等跨应用能力由 Portal 统一承接
+          <div className={styles.actions}>
+            <ThemeToggle />
+          </div>
+        )}
       </div>
     </header>
   );

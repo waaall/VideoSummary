@@ -23,6 +23,10 @@
   padding: 0 var(--spacing-lg);
 }
 
+.containerEmbedded {
+  justify-content: flex-start;
+}
+
 /* Logo */
 .logo {
   display: flex;
@@ -49,6 +53,11 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+.navEmbedded {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .navLink {
@@ -87,5 +96,9 @@
   .navLink {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.8125rem;
+  }
+
+  .containerEmbedded {
+    padding: 0 var(--spacing-md);
   }
 }
