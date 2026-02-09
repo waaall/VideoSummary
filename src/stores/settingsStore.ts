@@ -14,7 +14,7 @@ interface SettingsState {
 
   // API 配置
   apiBaseUrl: string;
-  apiKey: string;
+  authToken: string;
 
   // 请求行为
   pollingInterval: number;
@@ -26,18 +26,26 @@ interface SettingsState {
   // Actions
   setThemeMode: (mode: ThemeMode) => void;
   setApiBaseUrl: (url: string) => void;
-  setApiKey: (key: string) => void;
+  setAuthToken: (token: string) => void;
   setPollingInterval: (interval: number) => void;
   setRequestTimeout: (timeout: number) => void;
   setUploadMaxFileSizeMb: (sizeMb: number) => void;
   resetToDefaults: () => void;
 }
 
+function normalizeApiBaseUrl(url: string): string {
+  const value = url.trim();
+  if (!value) {
+    return '';
+  }
+  return value.replace(/\/+$/, '');
+}
+
 // 默认设置状态
 const defaultState = {
   themeMode: 'system' as ThemeMode,
   apiBaseUrl: apiConfig.baseUrl,
-  apiKey: '',
+  authToken: apiConfig.authToken,
   pollingInterval: defaultUiSettings.pollingInterval,
   requestTimeout: defaultUiSettings.requestTimeout,
   uploadMaxFileSizeMb: defaultUiSettings.uploadMaxFileSizeMb,
@@ -54,8 +62,8 @@ export const useSettingsStore = create<SettingsState>()(
         applyTheme(mode);
       },
 
-      setApiBaseUrl: (url) => set({ apiBaseUrl: url }),
-      setApiKey: (key) => set({ apiKey: key }),
+      setApiBaseUrl: (url) => set({ apiBaseUrl: normalizeApiBaseUrl(url) }),
+      setAuthToken: (token) => set({ authToken: token.trim() }),
       setPollingInterval: (interval) => set({ pollingInterval: interval }),
       setRequestTimeout: (timeout) => set({ requestTimeout: timeout }),
       setUploadMaxFileSizeMb: (sizeMb) => set({ uploadMaxFileSizeMb: sizeMb }),
@@ -71,7 +79,7 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         themeMode: state.themeMode,
         apiBaseUrl: state.apiBaseUrl,
-        apiKey: state.apiKey,
+        authToken: state.authToken,
         pollingInterval: state.pollingInterval,
         requestTimeout: state.requestTimeout,
         uploadMaxFileSizeMb: state.uploadMaxFileSizeMb,

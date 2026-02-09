@@ -16,6 +16,8 @@ interface ImportMetaEnv {
   readonly VITE_COOKIE_PATH?: string;
   /** API 基础地址 */
   readonly VITE_API_BASE_URL?: string;
+  /** API Bearer Token（可选） */
+  readonly VITE_API_AUTH_TOKEN?: string;
   /** API 请求超时时间（毫秒） */
   readonly VITE_API_TIMEOUT?: string;
   /** 轮询间隔（毫秒） */

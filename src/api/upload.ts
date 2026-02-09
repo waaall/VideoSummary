@@ -17,7 +17,7 @@ export const uploadLocalFile = (
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiClient.post<UploadResponse>('/uploads', formData, {
+  return apiClient.post<UploadResponse>('/api/uploads', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

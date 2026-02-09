@@ -13,13 +13,13 @@ export function SettingsPage() {
   const {
     themeMode,
     apiBaseUrl,
-    apiKey,
+    authToken,
     pollingInterval,
     requestTimeout,
     uploadMaxFileSizeMb,
     setThemeMode,
     setApiBaseUrl,
-    setApiKey,
+    setAuthToken,
     setPollingInterval,
     setRequestTimeout,
     setUploadMaxFileSizeMb,
@@ -28,13 +28,13 @@ export function SettingsPage() {
     useShallow((state) => ({
       themeMode: state.themeMode,
       apiBaseUrl: state.apiBaseUrl,
-      apiKey: state.apiKey,
+      authToken: state.authToken,
       pollingInterval: state.pollingInterval,
       requestTimeout: state.requestTimeout,
       uploadMaxFileSizeMb: state.uploadMaxFileSizeMb,
       setThemeMode: state.setThemeMode,
       setApiBaseUrl: state.setApiBaseUrl,
-      setApiKey: state.setApiKey,
+      setAuthToken: state.setAuthToken,
       setPollingInterval: state.setPollingInterval,
       setRequestTimeout: state.setRequestTimeout,
       setUploadMaxFileSizeMb: state.setUploadMaxFileSizeMb,
@@ -47,8 +47,8 @@ export function SettingsPage() {
   const handleSave = () => {
     const values = form.getFieldsValue();
 
-    setApiBaseUrl(values.apiBaseUrl);
-    setApiKey(values.apiKey || '');
+    setApiBaseUrl((values.apiBaseUrl || '').trim());
+    setAuthToken(values.authToken || '');
     setPollingInterval(values.pollingInterval);
     setRequestTimeout(values.requestTimeout);
     setUploadMaxFileSizeMb(values.uploadMaxFileSizeMb);
@@ -75,7 +75,7 @@ export function SettingsPage() {
         initialValues={{
           themeMode,
           apiBaseUrl,
-          apiKey,
+          authToken,
           pollingInterval,
           requestTimeout,
           uploadMaxFileSizeMb,
@@ -100,15 +100,15 @@ export function SettingsPage() {
           <Form.Item
             label="API 基础地址"
             name="apiBaseUrl"
-            rules={[{ required: true, message: '请输入 API 地址' }]}
+            tooltip="留空时使用同域路径；Web 常见值为空或 /apps/video，App 常见值为 https://<backend-domain>"
           >
-            <Input placeholder="http://localhost:8765" style={{ maxWidth: 400 }} />
+            <Input placeholder="/apps/video 或 https://video-api.example.com" style={{ maxWidth: 460 }} />
           </Form.Item>
 
           <Form.Item
-            label="x-api-key（可选）"
-            name="apiKey"
-            tooltip="仅用于限流区分，留空表示不发送"
+            label="Bearer Token（可选）"
+            name="authToken"
+            tooltip="留空表示不发送 Authorization 头"
           >
             <Input.Password placeholder="可选" style={{ maxWidth: 400 }} />
           </Form.Item>

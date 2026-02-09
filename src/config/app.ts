@@ -5,10 +5,20 @@
 
 import { runtimeConfig } from './runtime';
 
+function normalizeApiBaseUrl(input?: string): string {
+  const value = (input || '').trim();
+  if (!value) {
+    return '';
+  }
+  return value.replace(/\/+$/, '');
+}
+
 // API 配置
 export const apiConfig = {
-  // 基础 URL，支持环境变量覆盖
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8765',
+  // 基础 URL，允许为空（同域网关）
+  baseUrl: normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL),
+  // 认证 Token（可选）
+  authToken: (import.meta.env.VITE_API_AUTH_TOKEN || '').trim(),
   // 请求超时时间（毫秒）
   timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 300000,
   // 轮询间隔（毫秒）

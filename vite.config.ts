@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const base = normalizeBasePath(env.VITE_BASE_PATH);
   const storageNamespace = normalizeStorageNamespace(env.VITE_STORAGE_NS);
+  const devApiProxyTarget = (env.VITE_DEV_API_PROXY_TARGET || 'http://localhost:8765').trim();
 
   const injectRuntimeValuesPlugin = {
     name: 'inject-runtime-values',
@@ -43,9 +44,8 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         '/api': {
-          target: 'http://localhost:8765',
+          target: devApiProxyTarget,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

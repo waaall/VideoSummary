@@ -24,28 +24,28 @@ export const checkHealth = () =>
  * 创建摘要任务（缓存优先）
  */
 export const createSummary = (request: SummaryCreateRequest) =>
-  apiClient.post<SummaryCreateResponse>('/summaries', request);
+  apiClient.post<SummaryCreateResponse>('/api/summaries', request);
 
 /**
  * 查询任务状态
  */
 export const getJobStatus = (jobId: string) =>
-  apiClient.get<JobStatusResponse>(`/jobs/${jobId}`);
+  apiClient.get<JobStatusResponse>(`/api/jobs/${jobId}`);
 
 /**
  * 缓存预查
  */
 export const lookupCache = (request: CacheLookupRequest) =>
-  apiClient.post<CacheLookupResponse>('/cache/lookup', request);
+  apiClient.post<CacheLookupResponse>('/api/cache/lookup', request);
 
 /**
  * 缓存详情
  */
 export const getCacheEntry = (cacheKey: string) =>
-  apiClient.get<CacheEntryResponse>(`/cache/${cacheKey}`);
+  apiClient.get<CacheEntryResponse>(`/api/cache/${cacheKey}`);
 
 /**
  * 删除缓存
  */
 export const deleteCache = (cacheKey: string) =>
-  apiClient.delete<CacheDeleteResponse>(`/cache/${cacheKey}`);
+  apiClient.delete<CacheDeleteResponse>(`/api/cache/${cacheKey}`);
