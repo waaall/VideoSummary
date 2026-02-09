@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import tempfile
+import uuid
 from pathlib import Path
 from unittest.mock import patch
 
@@ -38,7 +39,7 @@ def temp_storage():
 
 
 class TestUploadEndpoint:
-    """POST /uploads 测试"""
+    """POST /api/uploads 测试"""
 
     def test_upload_video_file(self, client, temp_storage):
         """测试上传视频文件"""
@@ -50,7 +51,7 @@ class TestUploadEndpoint:
             file_content = b"fake video content"
             files = {"file": ("test_video.mp4", io.BytesIO(file_content), "video/mp4")}
 
-            response = client.post("/uploads", files=files)
+            response = client.post("/api/uploads", files=files)
 
             assert response.status_code == 200
             data = response.json()
@@ -70,7 +71,7 @@ class TestUploadEndpoint:
             file_content = b"fake audio content"
             files = {"file": ("test_audio.mp3", io.BytesIO(file_content), "audio/mpeg")}
 
-            response = client.post("/uploads", files=files)
+            response = client.post("/api/uploads", files=files)
 
             assert response.status_code == 200
             data = response.json()
@@ -86,7 +87,7 @@ class TestUploadEndpoint:
             file_content = b"1\n00:00:01,000 --> 00:00:05,000\nHello World\n"
             files = {"file": ("test_subtitle.srt", io.BytesIO(file_content), "text/plain")}
 
-            response = client.post("/uploads", files=files)
+            response = client.post("/api/uploads", files=files)
 
             assert response.status_code == 200
             data = response.json()
@@ -99,14 +100,14 @@ class TestUploadEndpoint:
             file_content = b"executable content"
             files = {"file": ("test.exe", io.BytesIO(file_content), "application/x-executable")}
 
-            response = client.post("/uploads", files=files)
+            response = client.post("/api/uploads", files=files)
 
             assert response.status_code == 415
-            assert "不支持的文件类型" in response.json()["detail"]
+            assert "不支持的文件类型" in response.json()["message"]
 
 
 class TestLocalSummaryWithFileId:
-    """POST /summaries 与 file_id 集成测试"""
+    """POST /api/summaries 与 file_id 集成测试"""
 
     def test_local_summary_with_subtitle_file_id(self, client, temp_storage):
         """测试使用 file_id 的本地摘要"""
@@ -118,7 +119,7 @@ class TestLocalSummaryWithFileId:
             subtitle_content = b"1\n00:00:01,000 --> 00:00:05,000\nHello World\n"
             files = {"file": ("test.srt", io.BytesIO(subtitle_content), "text/plain")}
 
-            upload_response = client.post("/uploads", files=files)
+            upload_response = client.post("/api/uploads", files=files)
             assert upload_response.status_code == 200
             upload_data = upload_response.json()
             file_id = upload_data["file_id"]
@@ -129,7 +130,7 @@ class TestLocalSummaryWithFileId:
                 "file_id": file_id,
             }
 
-            response = client.post("/summaries", json=request_data)
+            response = client.post("/api/summaries", json=request_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -148,10 +149,10 @@ class TestLocalSummaryWithFileId:
                 "file_id": "nonexistent_file_id",
             }
 
-            response = client.post("/summaries", json=request_data)
+            response = client.post("/api/summaries", json=request_data)
 
             assert response.status_code == 404
-            assert "文件不存在" in response.json()["detail"]
+            assert "文件不存在" in response.json()["message"]
 
     def test_cache_lookup_with_file_hash(self, client, temp_storage):
         """测试 cache/lookup 使用 file_hash"""
@@ -160,14 +161,16 @@ class TestLocalSummaryWithFileId:
             patch("app.api.main.get_store", return_value=temp_storage.store),
         ):
             # 上传字幕文件
-            subtitle_content = b"1\n00:00:01,000 --> 00:00:05,000\nHello World\n"
+            subtitle_content = (
+                f"1\n00:00:01,000 --> 00:00:05,000\nLookup {uuid.uuid4().hex}\n"
+            ).encode()
             files = {"file": ("uploaded.srt", io.BytesIO(subtitle_content), "text/plain")}
 
-            upload_response = client.post("/uploads", files=files)
+            upload_response = client.post("/api/uploads", files=files)
             file_hash = upload_response.json()["file_hash"]
 
             response = client.post(
-                "/cache/lookup",
+                "/api/cache/lookup",
                 json={"source_type": "local", "file_hash": file_hash},
             )
 

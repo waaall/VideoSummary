@@ -66,12 +66,12 @@ uvicorn app.api.main:app --reload --port 8765
 ## API 端点
 
 - `GET /health` - 健康检查
-- `POST /uploads` - 上传本地文件
-- `POST /cache/lookup` - 缓存查询（只读）
-- `POST /summaries` - 创建/查询摘要（缓存优先）
-- `GET /jobs/{job_id}` - 任务状态
-- `GET /cache/{cache_key}` - 缓存条目详情
-- `DELETE /cache/{cache_key}` - 删除缓存条目
+- `POST /api/uploads` - 上传本地文件
+- `POST /api/cache/lookup` - 缓存查询（只读）
+- `POST /api/summaries` - 创建/查询摘要（缓存优先）
+- `GET /api/jobs/{job_id}` - 任务状态
+- `GET /api/cache/{cache_key}` - 缓存条目详情
+- `DELETE /api/cache/{cache_key}` - 删除缓存条目
 
 说明：缓存相关响应会包含 `source_name` 字段（URL 标题或本地文件名）。
 
@@ -112,7 +112,7 @@ curl -s http://127.0.0.1:8765/health | python -m json.tool
 ### 2. URL 摘要（缓存优先）
 
 ```bash
-curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/json"   -d '{
+curl -s -X POST http://127.0.0.1:8765/api/summaries   -H "Content-Type: application/json"   -d '{
     "source_type": "url",
     "source_url": "https://www.bilibili.com/video/BV1iApwzBEqZ/"
   }' | python -m json.tool
@@ -121,17 +121,17 @@ curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/
 ### 3. 任务状态查询
 
 ```bash
-curl -s http://127.0.0.1:8765/jobs/<job_id> | python -m json.tool
+curl -s http://127.0.0.1:8765/api/jobs/<job_id> | python -m json.tool
 ```
 
 ### 4. 本地文件摘要
 
 ```bash
 # 先上传文件
-curl -s -X POST http://127.0.0.1:8765/uploads   -F "file=@/path/to/example.srt" | python -m json.tool
+curl -s -X POST http://127.0.0.1:8765/api/uploads   -F "file=@/path/to/example.srt" | python -m json.tool
 
 # 再创建摘要
-curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/json"   -d '{
+curl -s -X POST http://127.0.0.1:8765/api/summaries   -H "Content-Type: application/json"   -d '{
     "source_type": "local",
     "file_id": "f_xxx"
   }' | python -m json.tool
@@ -140,5 +140,5 @@ curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/
 ### 5. 删除缓存
 
 ```bash
-curl -s -X DELETE http://127.0.0.1:8765/cache/<cache_key> | python -m json.tool
+curl -s -X DELETE http://127.0.0.1:8765/api/cache/<cache_key> | python -m json.tool
 ```

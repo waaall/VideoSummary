@@ -1,65 +1,87 @@
-# API 文档（前端版）
+# API 文档（前后端对齐版）
 
-面向前端/集成的精简版，只包含 UI/调用需要知道的内容。
+本文件用于 Video 子应用与后端联调，按统一规范约束 URL、请求头、错误结构与接口路径。
 
----
+## 1. URL 组装规则（强制）
 
-## 基本说明
+- 子应用 endpoint 统一使用 `/api/*`。
+- 最终请求 URL 统一为 `joinUrl(apiBaseUrl, endpoint)`。
+- 健康检查为后端根路径 `GET /health`（不走 `/api`）。
 
-- API 默认无鉴权；可选 `x-api-key` 仅用于区分限流。
-- 摘要请求为**异步**：`/summaries` 未命中时返回 `job_id`，前端需轮询 `/jobs/{job_id}`。
-- 缓存命中时会直接返回 `summary_text`，无需轮询。
+环境变量建议值：
 
----
+| 变量 | Web（同域网关） | App（Tauri） |
+|---|---|---|
+| `VITE_API_BASE_URL` | `""` 或 `/apps/video`（取决于网关路由） | `https://<video-backend-domain>` |
+| `VITE_API_TIMEOUT` | 按业务默认 | 按业务默认 |
 
-## 配置方式与生效时机
+示例：
 
-### 启动时配置（需重启后端）
-以下配置不会在运行中自动刷新，修改后需要重启后端进程生效：
+- endpoint = `/api/summaries`
+- Web（`apiBaseUrl=/apps/video`）=> `/apps/video/api/summaries`
+- App（`apiBaseUrl=https://video-api.example.com`）=> `https://video-api.example.com/api/summaries`
 
-- **环境变量**（服务启动前设置）：
-  - LLM 摘要/翻译：`OPENAI_BASE_URL`、`OPENAI_API_KEY`、`LLM_MODEL`
-  - 翻译服务：`DEEPLX_ENDPOINT`
-  - 运行与限流：`JOB_WORKER_COUNT`、`UPLOAD_CONCURRENCY`、`SUMMARY_RATE_LIMIT_PER_MINUTE` 等（详见 `docs/dev/api.md`）
-- **`AppData/settings.json`**（后端默认配置）：
-  - 作为全局默认值来源（LLM / whisper / faster_whisper / whisper_api / work_dir 等）
-  - 进程启动后不会自动重载，修改需重启后端
+## 2. 请求头规范
 
-> 说明：当前 API 不支持在请求体中设置 `OPENAI_BASE_URL` / `OPENAI_API_KEY`，只能通过环境变量配置。
+统一请求头：
 
----
+- `Content-Type: application/json`（上传除外）
+- `X-Request-Id: <uuid>`（每次请求必带）
+- `X-Client-Platform: web | desktop`（建议）
+- `Authorization: Bearer <token>`（若启用 token 鉴权）
 
-## HTTP 接口
+兼容头（可选）：
 
-### 健康检查
+- `x-api-key: <key>`（仅用于限流区分时保留）
+
+## 3. 错误响应规范
+
+后端错误统一返回 JSON：
+
+```json
+{
+  "message": "错误描述",
+  "code": "ERROR_CODE",
+  "status": 400
+}
+```
+
+补充字段（可选）：`request_id`、`detail`、`errors`。
+前端应优先读取 `message`，其次 `detail`。
+
+## 4. HTTP 接口
+
+### 4.1 健康检查
 
 ```http
 GET /health
 ```
 
-**响应**:
+响应：
+
 ```json
 {"status": "ok", "version": "0.1.0"}
 ```
 
----
-
-### 文件上传
+### 4.2 文件上传
 
 ```http
-POST /uploads
+POST /api/uploads
 ```
 
-**请求**: `multipart/form-data`
-- 字段名: `file`
-- 可选头: `x-api-key`
+请求：`multipart/form-data`
 
-**支持格式**:
-- 视频: mp4, mkv, webm, mov, avi, flv, wmv
-- 音频: mp3, wav, flac, aac, m4a, ogg, wma
-- 字幕: srt, vtt, ass, ssa, sub
+- 字段名：`file`
+- 可选头：`Authorization`、`X-Request-Id`、`X-Client-Platform`、`x-api-key`
 
-**响应**:
+支持格式：
+
+- 视频：mp4, mkv, webm, mov, avi, flv, wmv
+- 音频：mp3, wav, flac, aac, m4a, ogg, wma
+- 字幕：srt, vtt, ass, ssa, sub
+
+响应：
+
 ```json
 {
   "file_id": "f_xxx",
@@ -71,39 +93,34 @@ POST /uploads
 }
 ```
 
-**常见错误**:
-- `413` 文件过大
-- `415` 文件类型不支持
-- `408` 读写超时
-- `429` 请求过于频繁
+常见错误：`413`、`415`、`408`、`429`
 
----
-
-### 缓存查询
+### 4.3 缓存查询
 
 ```http
-POST /cache/lookup
+POST /api/cache/lookup
 ```
 
-**请求体（URL）**:
+请求体（URL）：
+
 ```json
 {"source_type": "url", "source_url": "https://www.youtube.com/watch?v=..."}
 ```
 
-**请求体（本地）**:
+请求体（本地）：
+
 ```json
 {"source_type": "local", "file_id": "f_xxx"}
 ```
 
----
-
-### 创建/查询摘要（缓存优先）
+### 4.4 创建摘要（缓存优先）
 
 ```http
-POST /summaries
+POST /api/summaries
 ```
 
-**请求体**:
+请求体：
+
 ```json
 {
   "source_type": "url",
@@ -112,25 +129,26 @@ POST /summaries
 }
 ```
 
-**响应（命中）**:
+响应（命中）：
+
 ```json
 {"status": "completed", "cache_key": "...", "summary_text": "...", "source_name": "video-title-or-filename"}
 ```
 
-**响应（未命中/处理中）**:
+响应（未命中/处理中）：
+
 ```json
 {"status": "pending", "cache_key": "...", "job_id": "j_xxx", "source_name": "video-title-or-filename"}
 ```
 
----
-
-### 任务状态
+### 4.5 任务状态
 
 ```http
-GET /jobs/{job_id}
+GET /api/jobs/{job_id}
 ```
 
-**响应**:
+响应：
+
 ```json
 {
   "job_id": "j_xxx",
@@ -142,28 +160,24 @@ GET /jobs/{job_id}
 }
 ```
 
----
-
-### 缓存详情
+### 4.6 缓存详情
 
 ```http
-GET /cache/{cache_key}
+GET /api/cache/{cache_key}
 ```
 
-**响应**: `CacheEntryResponse`（含 `source_name`）
+响应：`CacheEntryResponse`（含 `source_name`）
 
----
-
-### 缓存删除
+### 4.7 缓存删除
 
 ```http
-DELETE /cache/{cache_key}
+DELETE /api/cache/{cache_key}
 ```
 
-**响应**:
+响应：
+
 ```json
 {"cache_key": "...", "deleted": true}
 ```
 
-**常见错误**:
-- `404` cache_key 不存在
+常见错误：`404`（cache_key 不存在）

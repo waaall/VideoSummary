@@ -33,7 +33,7 @@ curl -s http://127.0.0.1:8765/health | python -m json.tool
 创建摘要（URL）：
 
 ```bash
-curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/json"   -d '{
+curl -s -X POST http://127.0.0.1:8765/api/summaries   -H "Content-Type: application/json"   -d '{
     "source_type": "url",
     "source_url": "https://www.bilibili.com/video/BV1iApwzBEqZ/"
   }' | python -m json.tool
@@ -42,7 +42,7 @@ curl -s -X POST http://127.0.0.1:8765/summaries   -H "Content-Type: application/
 拿到 `job_id` 后轮询任务状态：
 
 ```bash
-curl -s http://127.0.0.1:8765/jobs/<job_id> | python -m json.tool
+curl -s http://127.0.0.1:8765/api/jobs/<job_id> | python -m json.tool
 ```
 
 期望结果：
@@ -59,6 +59,6 @@ uv run pytest tests/test_api/test_api_uploads.py -v
 
 ## 排障
 
-- **只有 job_id，没有 summary_text**：任务尚未完成；继续轮询 `/jobs/<job_id>`。
+- **只有 job_id，没有 summary_text**：任务尚未完成；继续轮询 `/api/jobs/<job_id>`。
 - `summary_text` 为空或报错：检查 LLM 环境变量，并查看日志中 `TextSummarizeNode` 的错误信息。
 - `status` 为 `failed`：查看 `jobs` 返回的 `error` 字段定位失败原因。

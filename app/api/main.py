@@ -4,7 +4,10 @@ import os
 import uuid
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.schemas import (
     CacheEntryResponse,
@@ -59,6 +62,109 @@ app.add_middleware(
 logger = setup_logger("api")
 
 
+_STATUS_ERROR_CODE_MAP = {
+    400: "BAD_REQUEST",
+    401: "UNAUTHORIZED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    405: "METHOD_NOT_ALLOWED",
+    408: "REQUEST_TIMEOUT",
+    413: "PAYLOAD_TOO_LARGE",
+    415: "UNSUPPORTED_MEDIA_TYPE",
+    422: "VALIDATION_ERROR",
+    429: "TOO_MANY_REQUESTS",
+    500: "INTERNAL_SERVER_ERROR",
+}
+
+
+def _error_code_for_status(status_code: int) -> str:
+    return _STATUS_ERROR_CODE_MAP.get(status_code, f"HTTP_{status_code}")
+
+
+def _get_or_create_request_id(request: Request) -> str:
+    existing = getattr(request.state, "request_id", None)
+    if existing:
+        return existing
+
+    request_id = request.headers.get("x-request-id")
+    if request_id:
+        request.state.request_id = request_id
+        return request_id
+
+    request_id = f"req_{uuid.uuid4().hex}"
+    request.state.request_id = request_id
+    return request_id
+
+
+def _build_error_payload(
+    *,
+    request: Request,
+    status: int,
+    message: str,
+    code: str,
+    detail=None,
+    errors=None,
+) -> dict:
+    payload = {
+        "message": message,
+        "code": code,
+        "status": status,
+        "request_id": _get_or_create_request_id(request),
+    }
+    if detail is not None:
+        payload["detail"] = detail
+    if errors is not None:
+        payload["errors"] = errors
+    return payload
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    request_id = _get_or_create_request_id(request)
+    response = await call_next(request)
+    response.headers["x-request-id"] = request_id
+    return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    detail = exc.detail
+    message = detail if isinstance(detail, str) else "请求失败"
+    payload = _build_error_payload(
+        request=request,
+        status=exc.status_code,
+        message=message,
+        code=_error_code_for_status(exc.status_code),
+        detail=detail if not isinstance(detail, str) else None,
+    )
+    return JSONResponse(status_code=exc.status_code, content=payload)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    payload = _build_error_payload(
+        request=request,
+        status=422,
+        message="请求参数校验失败",
+        code="VALIDATION_ERROR",
+        errors=exc.errors(),
+    )
+    return JSONResponse(status_code=422, content=payload)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    request_id = _get_or_create_request_id(request)
+    logger.exception("unhandled_exception request_id=%s", request_id, exc_info=exc)
+    payload = _build_error_payload(
+        request=request,
+        status=500,
+        message="服务器内部错误",
+        code="INTERNAL_SERVER_ERROR",
+    )
+    return JSONResponse(status_code=500, content=payload)
+
+
 def _enforce_rate_limit(request: Request, limiter) -> None:
     key = get_client_key(
         forwarded_for=request.headers.get("x-forwarded-for"),
@@ -70,10 +176,7 @@ def _enforce_rate_limit(request: Request, limiter) -> None:
 
 
 def _generate_request_id(request: Request) -> str:
-    request_id = request.headers.get("x-request-id")
-    if request_id:
-        return request_id
-    return f"req_{uuid.uuid4().hex}"
+    return _get_or_create_request_id(request)
 
 
 def _resolve_source(
@@ -152,7 +255,7 @@ def health_check():
 # ============ 文件上传 ============
 
 
-@app.post("/uploads", response_model=UploadResponse)
+@app.post("/api/uploads", response_model=UploadResponse)
 async def upload_file(request: Request, file: UploadFile = File(...)):
     """上传本地文件
 
@@ -161,7 +264,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     - 音频: mp3, wav, flac, aac, m4a, ogg, wma
     - 字幕: srt, vtt, ass, ssa, sub
 
-    上传后返回 file_id，可用于 /summaries (source_type=local) 接口。
+    上传后返回 file_id，可用于 /api/summaries (source_type=local) 接口。
     文件默认保留 24 小时后自动清理。
     """
     _enforce_rate_limit(request, upload_rate_limiter)
@@ -212,7 +315,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
 # ============ 缓存 API ============
 
 
-@app.post("/cache/lookup", response_model=CacheLookupResponse)
+@app.post("/api/cache/lookup", response_model=CacheLookupResponse)
 def cache_lookup(request: Request, req: CacheLookupRequest):
     """缓存查询
 
@@ -259,7 +362,7 @@ def cache_lookup(request: Request, req: CacheLookupRequest):
     return CacheLookupResponse(**result.to_dict())
 
 
-@app.post("/summaries", response_model=SummaryResponse, status_code=200)
+@app.post("/api/summaries", response_model=SummaryResponse, status_code=200)
 def create_summary(request: Request, req: SummaryRequest):
     """统一摘要入口（缓存优先）
 
@@ -379,7 +482,7 @@ def create_summary(request: Request, req: SummaryRequest):
     )
 
 
-@app.get("/jobs/{job_id}", response_model=JobStatusResponse)
+@app.get("/api/jobs/{job_id}", response_model=JobStatusResponse)
 def get_job_status(job_id: str):
     """查询任务状态"""
     cache_service = get_cache_service()
@@ -403,7 +506,7 @@ def get_job_status(job_id: str):
     )
 
 
-@app.get("/cache/{cache_key}", response_model=CacheEntryResponse)
+@app.get("/api/cache/{cache_key}", response_model=CacheEntryResponse)
 def get_cache_entry(cache_key: str):
     """获取缓存条目详情"""
     cache_service = get_cache_service()
@@ -431,7 +534,7 @@ def get_cache_entry(cache_key: str):
     )
 
 
-@app.delete("/cache/{cache_key}", response_model=CacheDeleteResponse)
+@app.delete("/api/cache/{cache_key}", response_model=CacheDeleteResponse)
 def delete_cache_entry(request: Request, cache_key: str):
     """删除缓存条目及其 bundle"""
     _enforce_rate_limit(request, summary_rate_limiter)

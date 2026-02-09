@@ -32,7 +32,7 @@ head:
 ## 数据流概览
 
 ```
-POST /uploads
+POST /api/uploads
   -> 限流/并发控制
   -> save_stream() 流式写盘
   -> 记录 metadata

@@ -160,6 +160,30 @@ VideoSummary 核心 API 接口文档。包含 HTTP 接口、缓存/任务接口�
 ## HTTP API 接口
 
 > 说明：API 默认不做鉴权；限流以 **IP / `x-api-key` 头**区分。
+> 约定：业务接口统一走 `/api/*`，仅健康检查保留为 `GET /health`。
+
+### 统一请求头（建议）
+
+- `Content-Type: application/json`（上传除外）
+- `X-Request-Id: <uuid>`（建议每次请求传入；服务端会在响应头回传 `x-request-id`）
+- `X-Client-Platform: web | desktop`（建议）
+- `Authorization: Bearer <token>`（若启用 token 鉴权）
+- `x-api-key: <key>`（仅用于限流区分，可选）
+
+### 统一错误响应
+
+错误返回为 JSON：
+
+```json
+{
+  "message": "错误描述",
+  "code": "ERROR_CODE",
+  "status": 400,
+  "request_id": "req_xxx"
+}
+```
+
+可选字段：`detail`、`errors`。
 
 ### 健康检查
 
@@ -177,7 +201,7 @@ GET /health
 ### 文件上传
 
 ```http
-POST /uploads
+POST /api/uploads
 ```
 
 上传本地文件，返回 `file_id` 供本地自动流程使用。
@@ -185,7 +209,7 @@ POST /uploads
 **请求**: `multipart/form-data`
 
 - 字段名: `file`
-- 可选请求头: `x-api-key`（仅用于区分限流，不做鉴权）
+- 可选请求头: `Authorization`、`X-Request-Id`、`X-Client-Platform`、`x-api-key`
 
 **支持的文件类型**:
 - 视频: mp4, mkv, webm, mov, avi, flv, wmv
@@ -221,7 +245,7 @@ POST /uploads
 ### 缓存查询
 
 ```http
-POST /cache/lookup
+POST /api/cache/lookup
 ```
 
 根据 `source_type` + `source_url/file_id/file_hash` 查询缓存状态。
@@ -257,7 +281,7 @@ POST /cache/lookup
 ### 创建/查询摘要（缓存优先）
 
 ```http
-POST /summaries
+POST /api/summaries
 ```
 
 **请求体**:
@@ -284,7 +308,7 @@ POST /summaries
 ### 任务状态
 
 ```http
-GET /jobs/{job_id}
+GET /api/jobs/{job_id}
 ```
 
 **响应**:
@@ -304,7 +328,7 @@ GET /jobs/{job_id}
 ### 缓存详情
 
 ```http
-GET /cache/{cache_key}
+GET /api/cache/{cache_key}
 ```
 
 **响应**: `CacheEntryResponse`
@@ -331,7 +355,7 @@ GET /cache/{cache_key}
 ### 缓存删除
 
 ```http
-DELETE /cache/{cache_key}
+DELETE /api/cache/{cache_key}
 ```
 
 删除缓存条目及其 bundle，同时清理关联的缓存任务记录。
@@ -351,7 +375,7 @@ DELETE /cache/{cache_key}
 ### URL 摘要（缓存优先）
 
 ```bash
-curl -X POST http://localhost:8765/summaries \
+curl -X POST http://localhost:8765/api/summaries \
   -H "Content-Type: application/json" \
   -d '{
     "source_type": "url",
@@ -362,7 +386,7 @@ curl -X POST http://localhost:8765/summaries \
 ### 任务状态查询
 
 ```bash
-curl -s http://127.0.0.1:8765/jobs/<job_id> | python -m json.tool
+curl -s http://127.0.0.1:8765/api/jobs/<job_id> | python -m json.tool
 ```
 
 ---
