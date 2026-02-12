@@ -8,10 +8,11 @@ import { apiConfig } from '@/config/app';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 interface ApiErrorPayload {
-  message?: string;
-  detail?: string;
-  code?: string;
-  status?: number;
+  message?: unknown;
+  detail?: unknown;
+  errors?: unknown;
+  code?: unknown;
+  status?: unknown;
 }
 
 const ABSOLUTE_URL_PATTERN = /^([a-z][a-z\d+\-.]*:)?\/\//i;
@@ -50,6 +51,49 @@ function detectClientPlatform(): 'web' | 'desktop' {
   return tauriWindow.__TAURI__ || tauriWindow.__TAURI_INTERNALS__
     ? 'desktop'
     : 'web';
+}
+
+function normalizeErrorText(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    return text || undefined;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const text = normalizeErrorText(item);
+      if (text) {
+        return text;
+      }
+    }
+    return undefined;
+  }
+
+  if (value && typeof value === 'object') {
+    const payload = value as Record<string, unknown>;
+    const preferred =
+      normalizeErrorText(payload.message) ??
+      normalizeErrorText(payload.detail) ??
+      normalizeErrorText(payload.msg) ??
+      normalizeErrorText(payload.reason) ??
+      normalizeErrorText(payload.type);
+    if (preferred) {
+      return preferred;
+    }
+
+    try {
+      const serialized = JSON.stringify(value);
+      return serialized === '{}' ? undefined : serialized;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
 }
 
 // 创建 axios 实例
@@ -91,9 +135,14 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<ApiErrorPayload>) => {
-    // 统一错误处理（优先读取 message，其次 detail）
     const payload = error.response?.data;
-    const message = payload?.message || payload?.detail || error.message || '请求失败';
+    const message =
+      normalizeErrorText(payload?.message) ??
+      normalizeErrorText(payload?.detail) ??
+      normalizeErrorText(payload?.errors) ??
+      normalizeErrorText(error.response?.statusText) ??
+      normalizeErrorText(error.message) ??
+      '请求失败';
     return Promise.reject(new Error(message));
   }
 );

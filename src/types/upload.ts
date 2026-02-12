@@ -8,4 +8,5 @@ export interface UploadResponse {
   size: number;
   mime_type: string;
   file_type: 'video' | 'audio' | 'subtitle';
+  file_hash?: string | null;
 }

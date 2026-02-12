@@ -19,11 +19,19 @@ interface FileUploaderProps {
   // 接受的文件类型，为空则接受所有支持的类型
   accept?: FileCategory[];
   // 上传成功回调
-  onUploadSuccess: (fileId: string, category: FileCategory, originalName: string) => void;
+  onUploadSuccess: (
+    fileId: string,
+    fileHash: string | undefined,
+    category: FileCategory,
+    originalName: string
+  ) => void;
   // 上传失败回调
   onUploadError?: (error: string) => void;
   // 上传函数
-  uploadFn: (file: File, onProgress: (percent: number) => void) => Promise<{ file_id: string }>;
+  uploadFn: (
+    file: File,
+    onProgress: (percent: number) => void
+  ) => Promise<{ file_id: string; file_hash?: string | null }>;
   // 是否禁用
   disabled?: boolean;
   // 自定义提示文本
@@ -110,7 +118,7 @@ export function FileUploader({
 
         setUploadStatus('success');
         setUploadProgress(100);
-        onUploadSuccess(result.file_id, category, file.name);
+        onUploadSuccess(result.file_id, result.file_hash ?? undefined, category, file.name);
         message.success('文件上传成功');
       } catch (error) {
         setUploadStatus('error');

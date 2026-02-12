@@ -101,8 +101,15 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
       const response = await createSummary(request);
       const data = response.data;
       const now = Date.now();
+      const sourceUrl =
+        context?.sourceUrl ?? (request.source_type === 'url' ? request.source_url : undefined);
+      const localSourceName =
+        data.source_name ?? (request.source_type === 'local' ? context?.fileName : undefined);
 
-      if (data.status === 'completed') {
+      if (response.status === 200) {
+        if (data.status !== 'completed') {
+          throw new Error(`接口响应与状态码不一致：HTTP 200 对应 status=${data.status}`);
+        }
         const historyId =
           data.job_id ??
           (data.cache_key ? `${CACHE_ID_PREFIX}${data.cache_key}` : `${LOCAL_ID_PREFIX}${now}`);
@@ -115,9 +122,9 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
           jobId: data.job_id ?? undefined,
           isCacheHit: !data.job_id && !!data.cache_key,
           sourceType: request.source_type,
-          sourceUrl: context?.sourceUrl ?? request.source_url,
+          sourceUrl,
           fileName: context?.fileName,
-          sourceName: request.source_type === 'local' ? context?.fileName : undefined,
+          sourceName: localSourceName,
           status: 'completed',
           cacheKey: data.cache_key ?? undefined,
           cacheStatus: 'completed',
@@ -131,30 +138,38 @@ export function useSummaryJob(options: UseSummaryJobOptions = {}) {
         return normalized;
       }
 
-      if (!data.job_id) {
-        throw new Error('响应缺少 job_id');
+      if (response.status === 202) {
+        if (data.status !== 'pending' && data.status !== 'running') {
+          throw new Error(`接口响应与状态码不一致：HTTP 202 对应 status=${data.status}`);
+        }
+
+        if (!data.job_id) {
+          throw new Error('响应缺少 job_id');
+        }
+
+        startJob(data.job_id, data.cache_key, data.status);
+
+        // 添加到历史记录
+        const historyJob: HistoryJob = {
+          historyId: data.job_id,
+          jobId: data.job_id,
+          sourceType: request.source_type,
+          sourceUrl,
+          fileName: context?.fileName,
+          sourceName: localSourceName,
+          status: data.status,
+          cacheKey: data.cache_key ?? undefined,
+          createdAt: now,
+          updatedAt: now,
+        };
+        addJob(historyJob);
+
+        startPolling();
+
+        return data;
       }
 
-      startJob(data.job_id, data.cache_key, 'pending');
-
-      // 添加到历史记录
-      const historyJob: HistoryJob = {
-        historyId: data.job_id,
-        jobId: data.job_id,
-        sourceType: request.source_type,
-        sourceUrl: context?.sourceUrl ?? request.source_url,
-        fileName: context?.fileName,
-        sourceName: request.source_type === 'local' ? context?.fileName : undefined,
-        status: 'pending',
-        cacheKey: data.cache_key ?? undefined,
-        createdAt: now,
-        updatedAt: now,
-      };
-      addJob(historyJob);
-
-      startPolling();
-
-      return data;
+      throw new Error(`不支持的响应状态码：${response.status}`);
     },
     [completeFromSummary, onComplete, startJob, startPolling, addJob]
   );

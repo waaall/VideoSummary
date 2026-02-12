@@ -59,17 +59,36 @@ export function QuickStartPage() {
   );
 
   const handleLocalSubmit = useCallback(
-    async (fileId: string, refresh: boolean, fileName?: string) => {
+    async (
+      fileId: string | undefined,
+      fileHash: string | undefined,
+      refresh: boolean,
+      fileName?: string
+    ) => {
       setSubmitting(true);
       reset();
 
       try {
+        const request = fileId
+          ? {
+              source_type: 'local' as const,
+              file_id: fileId,
+              refresh,
+            }
+          : fileHash
+            ? {
+                source_type: 'local' as const,
+                file_hash: fileHash,
+                refresh,
+              }
+            : null;
+
+        if (!request) {
+          throw new Error('缺少 file_id 或 file_hash，无法提交本地摘要任务');
+        }
+
         const data = await submitSummary(
-          {
-            source_type: 'local',
-            file_id: fileId,
-            refresh,
-          },
+          request,
           { fileName }
         );
 

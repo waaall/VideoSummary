@@ -5,6 +5,11 @@
 import { uploadConfig } from '@/config/app';
 import { getUploadMaxFileSizeBytes } from '@/stores/settingsStore';
 
+const FILE_ID_PATTERN = /^f_[0-9a-f]{32}$/;
+const JOB_ID_PATTERN = /^j_[0-9a-f]{32}$/;
+const FILE_HASH_PATTERN = /^[0-9a-f]{64}$/;
+const CACHE_KEY_PATTERN = /^[0-9a-f]{64}$/;
+
 /**
  * 验证 URL 格式
  */
@@ -86,6 +91,34 @@ export function isValidSubtitleFile(filename: string): boolean {
  */
 export function isValidFileSize(size: number): boolean {
   return size > 0 && size <= getUploadMaxFileSizeBytes();
+}
+
+/**
+ * 验证 file_id 格式
+ */
+export function isValidFileId(fileId: string): boolean {
+  return FILE_ID_PATTERN.test(fileId);
+}
+
+/**
+ * 验证 job_id 格式
+ */
+export function isValidJobId(jobId: string): boolean {
+  return JOB_ID_PATTERN.test(jobId);
+}
+
+/**
+ * 验证 file_hash 格式
+ */
+export function isValidFileHash(fileHash: string): boolean {
+  return FILE_HASH_PATTERN.test(fileHash);
+}
+
+/**
+ * 验证 cache_key 格式
+ */
+export function isValidCacheKey(cacheKey: string): boolean {
+  return CACHE_KEY_PATTERN.test(cacheKey);
 }
 
 /**

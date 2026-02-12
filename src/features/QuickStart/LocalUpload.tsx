@@ -19,12 +19,18 @@ import styles from './LocalUpload.module.css';
 
 interface UploadedFile {
   fileId: string;
+  fileHash?: string;
   category: FileCategory;
   name: string;
 }
 
 interface LocalUploadProps {
-  onSubmit: (fileId: string, refresh: boolean, fileName?: string) => void;
+  onSubmit: (
+    fileId: string | undefined,
+    fileHash: string | undefined,
+    refresh: boolean,
+    fileName?: string
+  ) => void;
   loading?: boolean;
 }
 
@@ -55,8 +61,8 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
   const [refresh, setRefresh] = useState(false);
 
   const handleUploadSuccess = useCallback(
-    (fileId: string, category: FileCategory, originalName: string) => {
-      setUploadedFile({ fileId, category, name: originalName });
+    (fileId: string, fileHash: string | undefined, category: FileCategory, originalName: string) => {
+      setUploadedFile({ fileId, fileHash, category, name: originalName });
       message.info(`已选择${categoryNames[category]}文件`);
     },
     []
@@ -72,13 +78,16 @@ export function LocalUpload({ onSubmit, loading = false }: LocalUploadProps) {
       return;
     }
 
-    onSubmit(uploadedFile.fileId, refresh, uploadedFile.name);
+    onSubmit(uploadedFile.fileId, uploadedFile.fileHash, refresh, uploadedFile.name);
   }, [uploadedFile, onSubmit, refresh]);
 
   const handleUpload = useCallback(
     async (file: File, onProgress: (percent: number) => void) => {
       const response = await uploadLocalFile(file, onProgress);
-      return { file_id: response.data.file_id };
+      return {
+        file_id: response.data.file_id,
+        file_hash: response.data.file_hash ?? undefined,
+      };
     },
     []
   );
