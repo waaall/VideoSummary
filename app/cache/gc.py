@@ -10,13 +10,10 @@ from __future__ import annotations
 
 import os
 import threading
-import time
-from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from app.api.persistence import SQLiteStore, get_store
 from app.cache.bundle import BundleManager
-from app.config import WORK_PATH
 from app.core.utils.logger import setup_logger
 
 logger = setup_logger("cache_gc")

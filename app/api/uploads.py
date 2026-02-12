@@ -20,9 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional, Set
 
-from app.config import WORK_PATH
 from app.api.persistence import SQLiteStore, get_store
-
+from app.config import WORK_PATH
 
 # 文件类型白名单配置
 ALLOWED_VIDEO_EXTENSIONS: Set[str] = {".mp4", ".mkv", ".webm", ".mov", ".avi", ".flv", ".wmv"}
@@ -394,55 +393,54 @@ class FileStorage:
 
         file_id = self._generate_file_id()
         file_dir = self.upload_dir / file_id
-        file_dir.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(file_dir.mkdir, parents=True, exist_ok=True)
         stored_path = file_dir / safe_name
 
         size = 0
         hasher = hashlib.sha256()
         max_bytes = self.max_file_size_bytes
+        file_obj = None
         try:
-            with open(stored_path, "wb") as f:
-                while True:
-                    try:
-                        chunk = await asyncio.wait_for(
-                            read_chunk(chunk_size), timeout=read_timeout
-                        )
-                    except asyncio.TimeoutError as e:
-                        raise FileTimeoutError("读取超时") from e
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    hasher.update(chunk)
-                    if size > max_bytes:
-                        raise FileSizeError(
-                            f"文件大小 {size / 1024 / 1024:.1f}MB 超过限制 "
-                            f"{max_bytes / 1024 / 1024:.0f}MB"
-                        )
-                    try:
-                        await asyncio.wait_for(
-                            asyncio.to_thread(f.write, chunk),
-                            timeout=write_timeout,
-                        )
-                    except asyncio.TimeoutError as e:
-                        raise FileTimeoutError("写入超时") from e
+            file_obj = await asyncio.to_thread(open, stored_path, "wb")
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(
+                        read_chunk(chunk_size), timeout=read_timeout
+                    )
+                except asyncio.TimeoutError as e:
+                    raise FileTimeoutError("读取超时") from e
+                if not chunk:
+                    break
+                size += len(chunk)
+                hasher.update(chunk)
+                if size > max_bytes:
+                    raise FileSizeError(
+                        f"文件大小 {size / 1024 / 1024:.1f}MB 超过限制 "
+                        f"{max_bytes / 1024 / 1024:.0f}MB"
+                    )
+                try:
+                    await asyncio.wait_for(
+                        asyncio.to_thread(file_obj.write, chunk),
+                        timeout=write_timeout,
+                    )
+                except asyncio.TimeoutError as e:
+                    raise FileTimeoutError("写入超时") from e
             if size == 0:
                 raise FileSizeError("上传内容为空")
         except Exception:
-            # 清理已写入的文件
-            try:
-                if stored_path.exists():
-                    stored_path.unlink()
-                if stored_path.parent.exists() and not any(stored_path.parent.iterdir()):
-                    stored_path.parent.rmdir()
-            except OSError:
-                pass
+            if file_obj is not None and not file_obj.closed:
+                await asyncio.to_thread(file_obj.close)
+            await asyncio.to_thread(self._cleanup_physical_file, stored_path)
             raise
+        finally:
+            if file_obj is not None and not file_obj.closed:
+                await asyncio.to_thread(file_obj.close)
 
         file_hash = hasher.hexdigest()
-        reusable = self._find_reusable_record(file_hash, file_type)
+        reusable = await asyncio.to_thread(self._find_reusable_record, file_hash, file_type)
         if reusable:
             # 删除刚写入的重复文件，复用已有 stored_path
-            self._cleanup_physical_file(stored_path)
+            await asyncio.to_thread(self._cleanup_physical_file, stored_path)
             stored_path = Path(reusable.get("stored_path", ""))
 
         uploaded_file = UploadedFile(
@@ -458,7 +456,8 @@ class FileStorage:
 
         with self._files_lock:
             self._files[file_id] = uploaded_file
-        self.store.upsert_upload(
+        await asyncio.to_thread(
+            self.store.upsert_upload,
             {
                 "file_id": file_id,
                 "original_name": original_name,
@@ -469,7 +468,7 @@ class FileStorage:
                 "file_hash": file_hash,
                 "created_at": uploaded_file.created_at,
                 "ttl_seconds": uploaded_file.ttl_seconds,
-            }
+            },
         )
 
         return uploaded_file

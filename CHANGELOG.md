@@ -1,5 +1,23 @@
 ## 更新日志
 
+### 2026-02-12 - API 重构（Breaking）
+
+- 直接替换 `/api/*`，不提供向后兼容层。
+- 引入 Pydantic v2 强类型 schema（枚举、URL、regex、条件校验）。
+- 拆分 `BaseSettings`：
+  - `app/api/settings.py`（按领域定义 Upload/RateLimit/Worker）
+- 新增依赖层 `app/api/dependencies.py`：
+  - 限流依赖（上传/摘要）
+  - 资源解析依赖（source 解析、job/cache 校验）
+- 状态码语义调整：
+  - `POST /api/uploads` -> `201`
+  - `POST /api/summaries` -> `200`（命中）/`202`（处理中或新入队）
+- 将上传异步路径中的文件系统与 SQLite 阻塞点统一迁移到 `asyncio.to_thread`。
+- 增加 API 测试覆盖：
+  - `tests/test_api/test_schemas_v2.py`
+  - `tests/test_api/test_dependencies.py`
+- 重写文档：`docs/dev/api.md`
+- 新增升级文档：`docs/dev/api-breaking-changes.md`
 
 ## 已知问题
 
