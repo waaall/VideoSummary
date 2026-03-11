@@ -1,9 +1,9 @@
 """LLM Translator integration tests.
 
 Requires environment variables:
-    OPENAI_BASE_URL: OpenAI-compatible API endpoint
-    OPENAI_API_KEY: API key for authentication
-    OPENAI_MODEL: Model name (optional, defaults to gpt-4o-mini)
+    LLM_BASE_URL: OpenAI-compatible API endpoint
+    LLM_API_KEY: API key for authentication
+    LLM_MODEL: Model name (optional, defaults to gpt-4o-mini)
 """
 
 import os
@@ -128,9 +128,9 @@ class TestLLMTranslator:
         check_env_vars: Callable,
     ) -> None:
         """Test reflect translation mode with nested dict validation."""
-        check_env_vars("OPENAI_BASE_URL", "OPENAI_API_KEY")
+        check_env_vars("LLM_BASE_URL", "LLM_API_KEY")
 
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        model = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
         translator = LLMTranslator(
             thread_num=2,

@@ -101,18 +101,6 @@ class TranscribeOutputFormatEnum(Enum):
     ALL = "All"
 
 
-class LLMServiceEnum(Enum):
-    """LLM服务"""
-
-    OPENAI = "OpenAI 兼容"
-    SILICON_CLOUD = "SiliconCloud"
-    DEEPSEEK = "DeepSeek"
-    OLLAMA = "Ollama"
-    LM_STUDIO = "LM Studio"
-    GEMINI = "Gemini"
-    CHATGLM = "ChatGLM"
-
-
 class TranscribeModelEnum(Enum):
     """转录模型"""
 

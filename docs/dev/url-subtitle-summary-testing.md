@@ -13,8 +13,8 @@
 - 安装依赖：`uv sync`
 - 启动服务：`uvicorn app.api.main:app --reload --port 8765`
 - `TextSummarizeNode` 需要 LLM 环境变量：
-  - `OPENAI_BASE_URL`
-  - `OPENAI_API_KEY`
+  - `LLM_BASE_URL`
+  - `LLM_API_KEY`
   - 可选：`LLM_MODEL`
 - 服务不会自动读取 `tests/.env`，需要显式加载（推荐）：
   - `uvicorn app.api.main:app --reload --port 8765 --env-file tests/.env`

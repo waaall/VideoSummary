@@ -63,6 +63,73 @@ set +a
 uvicorn app.api.main:app --reload --port 8765
 ```
 
+## Docker 部署
+
+### 1. 准备环境变量
+
+`docker compose` 会读取项目根目录下的 `.env` 文件，也可以直接在当前 shell 中导出环境变量。至少建议配置以下变量：
+
+- `LLM_BASE_URL`
+- `LLM_API_KEY`
+- `LLM_MODEL`
+
+示例 `.env`：
+
+```bash
+LLM_BASE_URL=https://your-llm-endpoint/v1
+LLM_API_KEY=your_api_key
+LLM_MODEL=gpt-4o-mini
+JOB_WORKER_COUNT=1
+UPLOAD_CONCURRENCY=2
+UPLOAD_RATE_LIMIT_PER_MINUTE=30
+SUMMARY_RATE_LIMIT_PER_MINUTE=60
+```
+
+说明：如果 `LLM_BASE_URL` 或 `LLM_API_KEY` 为空，容器仍然可以启动并通过 `/health` 检查，但实际发起摘要任务时会失败。
+
+### 2. 构建并后台启动
+
+```bash
+docker compose up --build -d
+```
+
+首次构建会拉取基础镜像并安装系统依赖、Python 依赖，耗时会明显长一些。
+
+### 3. 查看服务状态
+
+```bash
+docker compose ps
+docker compose logs -f videosummary-api
+```
+
+默认监听端口为 `8765`。
+
+### 4. 健康检查
+
+```bash
+curl -s http://127.0.0.1:8765/health | python -m json.tool
+```
+
+### 5. 停止服务
+
+```bash
+docker compose down
+```
+
+### 6. 更新后重新构建
+
+代码或 `resource/` 目录内容变更后，重新执行：
+
+```bash
+docker compose up --build -d
+```
+
+### 7. 数据目录说明
+
+- `./AppData`：持久化日志、缓存、模型和运行配置。
+- `./work-dir`：持久化任务处理过程中的工作目录。
+- `resource/`：已打包进镜像，不再通过 `docker-compose.yml` 挂载；修改后需要重新构建镜像。
+
 ## API 端点
 
 - `GET /health` - 健康检查

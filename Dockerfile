@@ -1,10 +1,25 @@
-FROM video-summary-basic:1.0.0
+FROM python:3.12.12-bookworm
 
-# 设置工作目录
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        aria2 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# 拷贝代码
-COPY ./ ./
+# 先安装依赖，尽量复用 Docker 缓存。
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv \
+    && uv sync --frozen --no-dev --no-install-project --system
 
+COPY app ./app
+COPY resource ./resource
+
+EXPOSE 8765
 
 CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8765"]

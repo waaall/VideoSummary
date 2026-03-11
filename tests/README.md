@@ -25,8 +25,9 @@ uv run pytest tests/test_translate/test_google_translator.py tests/test_translat
 
 ```bash
 # 1. 配置环境变量
-export OPENAI_BASE_URL=https://api.openai.com/v1
-export OPENAI_API_KEY=sk-your-key
+export LLM_BASE_URL=https://api.openai.com/v1
+export LLM_API_KEY=sk-your-key
+export LLM_MODEL=gpt-4o-mini
 
 # 2. 运行所有测试
 uv run pytest tests/test_translate/ -v
@@ -50,8 +51,9 @@ uv run pytest tests/test_translate/ -m "not integration" -v
 
 ```bash
 # LLM 翻译器测试（必需）
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_API_KEY=sk-your-api-key
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=sk-your-api-key
+LLM_MODEL=gpt-4o-mini
 
 # DeepLX 翻译器测试（可选）
 DEEPLX_ENDPOINT=https://api.deeplx.org/translate
@@ -61,8 +63,9 @@ DEEPLX_ENDPOINT=https://api.deeplx.org/translate
 
 GitHub Actions 中通过 **Settings → Secrets** 配置：
 
-- `OPENAI_BASE_URL`
-- `OPENAI_API_KEY`
+- `LLM_BASE_URL`
+- `LLM_API_KEY`
+- `LLM_MODEL`
 - `DEEPLX_ENDPOINT`（可选）
 
 详见 [docs/CI_SETUP.md](../docs/CI_SETUP.md)
@@ -87,8 +90,9 @@ GitHub Actions 中通过 **Settings → Secrets** 配置：
 **解决**:
 
 ```bash
-export OPENAI_BASE_URL=...
-export OPENAI_API_KEY=...
+export LLM_BASE_URL=...
+export LLM_API_KEY=...
+export LLM_MODEL=...
 ```
 
 ### ImportError

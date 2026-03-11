@@ -1,4 +1,4 @@
-"""LLM 翻译器（使用 OpenAI）"""
+"""LLM 翻译器（使用 OpenAI 兼容接口）"""
 
 import json
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -14,7 +14,7 @@ from app.core.utils.cache import generate_cache_key
 
 
 class LLMTranslator(BaseTranslator):
-    """LLM 翻译器（OpenAI兼容API）"""
+    """LLM 翻译器（OpenAI 兼容 API）"""
 
     MAX_STEPS = 3
 
@@ -84,11 +84,11 @@ class LLMTranslator(BaseTranslator):
                 )
             return subtitle_chunk
         except openai.RateLimitError as e:
-            logger.error(f"OpenAI Rate Limit Error: {str(e)}")
+            logger.error(f"LLM API Rate Limit Error: {str(e)}")
         except openai.AuthenticationError as e:
-            logger.error(f"OpenAI Authentication Error: {str(e)}")
+            logger.error(f"LLM API Authentication Error: {str(e)}")
         except openai.NotFoundError as e:
-            logger.error(f"OpenAI NotFound Error: {str(e)}")
+            logger.error(f"LLM API NotFound Error: {str(e)}")
         except Exception as e:
             logger.exception(f"Error: {str(e)}")
             return self._translate_chunk_single(subtitle_chunk)

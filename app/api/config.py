@@ -15,7 +15,6 @@ from typing import Any
 from app.config import SETTINGS_PATH, WORK_PATH
 from app.core.entities import (
     FasterWhisperModelEnum,
-    LLMServiceEnum,
     SubtitleLayoutEnum,
     SubtitleRenderModeEnum,
     TranscribeLanguageEnum,
@@ -31,44 +30,11 @@ from app.core.translate.types import TargetLanguage
 
 @dataclass
 class LLMConfig:
-    """LLM 服务配置"""
+    """通用 OpenAI 兼容 LLM 配置。"""
 
-    service: LLMServiceEnum = LLMServiceEnum.OPENAI
-
-    # OpenAI
-    openai_model: str = "gpt-4o-mini"
-    openai_api_key: str = ""
-    openai_api_base: str = "https://api.openai.com/v1"
-
-    # SiliconCloud
-    silicon_cloud_model: str = "gpt-4o-mini"
-    silicon_cloud_api_key: str = ""
-    silicon_cloud_api_base: str = "https://api.siliconflow.cn/v1"
-
-    # DeepSeek
-    deepseek_model: str = "deepseek-chat"
-    deepseek_api_key: str = ""
-    deepseek_api_base: str = "https://api.deepseek.com/v1"
-
-    # Ollama
-    ollama_model: str = "llama2"
-    ollama_api_key: str = "ollama"
-    ollama_api_base: str = "http://localhost:11434/v1"
-
-    # LM Studio
-    lm_studio_model: str = "qwen2.5:7b"
-    lm_studio_api_key: str = "lmstudio"
-    lm_studio_api_base: str = "http://localhost:1234/v1"
-
-    # Gemini
-    gemini_model: str = "gemini-pro"
-    gemini_api_key: str = ""
-    gemini_api_base: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-
-    # ChatGLM
-    chatglm_model: str = "glm-4"
-    chatglm_api_key: str = ""
-    chatglm_api_base: str = "https://open.bigmodel.cn/api/paas/v4"
+    model: str = "gpt-4o-mini"
+    api_key: str = ""
+    base_url: str = "https://api.openai.com/v1"
 
 
 @dataclass
@@ -260,6 +226,21 @@ def _apply_config(cfg: Any, data: dict) -> None:
             setattr(cfg, key, _coerce_value(current_value, incoming))
 
 
+def _apply_env_overrides(config: BackendConfig) -> None:
+    """应用环境变量覆盖。仅对非空值生效，避免空字符串覆盖文件配置。"""
+    env_model = os.getenv("LLM_MODEL", "").strip()
+    if env_model:
+        config.llm.model = env_model
+
+    env_api_key = os.getenv("LLM_API_KEY", "").strip()
+    if env_api_key:
+        config.llm.api_key = env_api_key
+
+    env_base_url = os.getenv("LLM_BASE_URL", "").strip()
+    if env_base_url:
+        config.llm.base_url = env_base_url
+
+
 def load_config(path: Path | None = None) -> BackendConfig:
     """从 JSON 文件加载配置（仅支持新结构）
 
@@ -272,22 +253,17 @@ def load_config(path: Path | None = None) -> BackendConfig:
     path = path or SETTINGS_PATH
     config = BackendConfig()
 
-    if not path.exists():
-        return config
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = None
 
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return config
+        if isinstance(data, dict):
+            _apply_config(config, data)
 
-    if isinstance(data, dict):
-        _apply_config(config, data)
-
-    # 环境变量覆盖（保持与旧实现一致）
-    env_openai_key = os.environ.get("OPENAI_API_KEY")
-    if env_openai_key:
-        config.llm.openai_api_key = env_openai_key
+    _apply_env_overrides(config)
 
     return config
 

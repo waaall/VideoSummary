@@ -56,7 +56,8 @@ def build_transcribe_config() -> CoreTranscribeConfig:
 
 
 def build_summary_params() -> Dict[str, object]:
-    model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
+    cfg = get_config()
+    model = cfg.llm.model
     prompt = os.getenv("LLM_SUMMARY_PROMPT", "请总结以下视频内容的主要观点：")
     try:
         max_tokens = int(os.getenv("LLM_MAX_TOKENS", "1000"))

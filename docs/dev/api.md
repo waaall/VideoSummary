@@ -1,7 +1,6 @@
 # API 文档（Pydantic v2 重构版）
 
 本版本是直接替换 `/api/*` 的重构版本，不提供向后兼容层。
-详细不兼容项请见：`docs/dev/api-breaking-changes.md`。
 
 ## 1. 基础信息
 

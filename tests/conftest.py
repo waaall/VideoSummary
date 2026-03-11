@@ -115,7 +115,7 @@ def check_env_vars():
 
     Example:
         def test_api(check_env_vars):
-            check_env_vars("OPENAI_API_KEY", "OPENAI_BASE_URL")
+            check_env_vars("LLM_API_KEY", "LLM_BASE_URL")
             # Test continues only if both variables are set
     """
 

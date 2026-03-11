@@ -1,9 +1,9 @@
 """LLM-based text splitting tests.
 
 Requires environment variables:
-    OPENAI_BASE_URL: OpenAI-compatible API endpoint
-    OPENAI_API_KEY: API key for authentication
-    OPENAI_MODEL: Model name (optional, defaults to gpt-4o-mini)
+    LLM_BASE_URL: OpenAI-compatible API endpoint
+    LLM_API_KEY: API key for authentication
+    LLM_MODEL: Model name (optional, defaults to gpt-4o-mini)
 """
 
 import os

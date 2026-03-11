@@ -1,9 +1,9 @@
 """Subtitle optimizer tests.
 
 Requires environment variables:
-    OPENAI_BASE_URL: OpenAI-compatible API endpoint
-    OPENAI_API_KEY: API key for authentication
-    OPENAI_MODEL: Model name (optional, defaults to gpt-4o-mini)
+    LLM_BASE_URL: OpenAI-compatible API endpoint
+    LLM_API_KEY: API key for authentication
+    LLM_MODEL: Model name (optional, defaults to gpt-4o-mini)
 """
 
 import os
@@ -59,7 +59,7 @@ class TestSubtitleOptimizer:
         check_env_vars: Callable,
     ):
         """Test basic optimization functionality."""
-        check_env_vars("OPENAI_BASE_URL", "OPENAI_API_KEY")
+        check_env_vars("LLM_BASE_URL", "LLM_API_KEY")
 
         result = optimizer.optimize_subtitle(sample_asr_data)
 
@@ -88,7 +88,7 @@ class TestSubtitleOptimizer:
         check_env_vars: Callable,
     ):
         """Test agent loop validation and correction."""
-        check_env_vars("OPENAI_BASE_URL", "OPENAI_API_KEY")
+        check_env_vars("LLM_BASE_URL", "LLM_API_KEY")
 
         result = optimizer.optimize_subtitle(sample_asr_data)
 

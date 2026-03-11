@@ -53,9 +53,6 @@ cookies.txt
 htmlcov/
 *.log
 
-# Node.js 和 VitePress
+# Node.js
 node_modules/
-docs/.vitepress/cache/
-docs/.vitepress/dist/
 /package-lock.json
-!docs/package-lock.json

@@ -1,6 +1,5 @@
 """Unified LLM client for the application."""
 
-import os
 import threading
 import time
 from typing import Any, List, Optional
@@ -39,6 +38,9 @@ def _estimate_prompt_chars(messages: List[dict]) -> int:
 def normalize_base_url(base_url: str) -> str:
     """Normalize API base URL by ensuring /v1 suffix when needed."""
     url = base_url.strip()
+    if not url:
+        return ""
+
     parsed = urlparse(url)
     path = parsed.path.rstrip("/")
 
@@ -67,19 +69,22 @@ def get_llm_client() -> OpenAI:
         with _client_lock:
             if _global_client is None:
                 try:
-                    base_url = os.getenv("OPENAI_BASE_URL", "").strip()
-                    base_url = normalize_base_url(base_url)
-                    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+                    from app.api.config import get_config
+
+                    llm_cfg = get_config().llm
+                    base_url = normalize_base_url(llm_cfg.base_url)
+                    api_key = llm_cfg.api_key.strip()
 
                     if not base_url or not api_key:
                         logger.error(
-                            "LLM client init failed: OPENAI_BASE_URL or OPENAI_API_KEY missing "
+                            "LLM client init failed: llm.base_url or llm.api_key missing "
                             "(base_url=%s, api_key_set=%s)",
                             base_url or "<empty>",
                             bool(api_key),
                         )
                         raise ValueError(
-                            "OPENAI_BASE_URL and OPENAI_API_KEY environment variables must be set"
+                            "LLM base_url/api_key must be configured via settings.json or "
+                            "LLM_BASE_URL/LLM_API_KEY environment variables"
                         )
 
                     _global_client = OpenAI(
@@ -97,7 +102,7 @@ def get_llm_client() -> OpenAI:
 
 def before_sleep_log(retry_state: RetryCallState) -> None:
     logger.warning(
-        "Rate Limit Error, sleeping and retrying... Please lower your thread concurrency or use better OpenAI API."
+        "Rate Limit Error, sleeping and retrying... Please lower your thread concurrency or use a more reliable LLM API."
     )
 
 
@@ -169,6 +174,6 @@ def call_llm(
         and hasattr(response.choices[0], "message")
         and response.choices[0].message.content
     ):
-        raise ValueError("Invalid OpenAI API response: empty choices or content")
+        raise ValueError("Invalid LLM API response: empty choices or content")
 
     return response
