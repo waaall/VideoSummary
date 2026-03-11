@@ -13,13 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # 先安装依赖，尽量复用 Docker 缓存。
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN pip install --no-cache-dir uv \
-    && uv sync --frozen --no-dev --no-install-project --system
+    && uv sync --frozen --no-dev
 
 COPY app ./app
 COPY resource ./resource
 
 EXPOSE 8765
 
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["uv", "run", "uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8765"]
