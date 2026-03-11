@@ -53,6 +53,30 @@ function detectClientPlatform(): 'web' | 'desktop' {
     : 'web';
 }
 
+function createRequestId(): string {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.randomUUID) {
+    return cryptoApi.randomUUID();
+  }
+
+  if (cryptoApi?.getRandomValues) {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+    return [
+      hex.slice(0, 4).join(''),
+      hex.slice(4, 6).join(''),
+      hex.slice(6, 8).join(''),
+      hex.slice(8, 10).join(''),
+      hex.slice(10, 16).join(''),
+    ].join('-');
+  }
+
+  return `req-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
 function normalizeErrorText(value: unknown): string | undefined {
   if (typeof value === 'string') {
     const text = value.trim();
@@ -122,7 +146,7 @@ apiClient.interceptors.request.use(
     }
 
     // 统一接入规范请求头
-    config.headers['X-Request-Id'] = crypto.randomUUID();
+    config.headers['X-Request-Id'] = createRequestId();
     config.headers['X-Client-Platform'] = detectClientPlatform();
     return config;
   },
