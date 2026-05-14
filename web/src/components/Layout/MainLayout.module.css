@@ -1,0 +1,38 @@
+/**
+ * 主布局样式
+ */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.footer {
+  padding: var(--spacing-lg);
+  text-align: center;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .main {
+    padding: var(--spacing-md);
+  }
+}

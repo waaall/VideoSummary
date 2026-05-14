@@ -1,0 +1,28 @@
+/**
+ * 缓存查看器样式
+ */
+
+.container {
+  padding: var(--spacing-lg);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.codeBlock {
+  width: 100%;
+  margin: 0;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  overflow: auto;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}

@@ -1,0 +1,106 @@
+/**
+ * 文件上传组件样式
+ */
+
+.dragger {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  transition: all var(--transition-normal);
+}
+
+.dragger:hover {
+  border-color: var(--color-accent-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.dragIcon {
+  font-size: 48px;
+  color: var(--color-accent-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.dragText {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.dragHint {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+}
+
+/* 上传中状态 */
+.uploadingContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fileIcon {
+  font-size: 32px;
+  color: var(--color-accent-primary);
+}
+
+.uploadInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* 上传成功状态 */
+.successContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-lg);
+}
+
+.successIcon {
+  font-size: 32px;
+  color: var(--color-success);
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.resetButton {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.resetButton:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
