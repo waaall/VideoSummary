@@ -1,0 +1,25 @@
+# 构建产物
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+
+# Vite 配置编译产物（vite.config.ts 编译出的 .js/.d.ts 不应提交）
+vite.config.js
+vite.config.d.ts
+
+# npm/yarn/pnpm 调试日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 编辑器/IDE（保留 .vscode/extensions.json 便于团队共享推荐插件）
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
