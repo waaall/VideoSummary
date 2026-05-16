@@ -7,8 +7,6 @@ import tempfile
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
-import GPUtil
-
 from ..utils.logger import setup_logger
 from ..utils.subprocess_helper import StreamReader
 from .asr_data import ASRData, ASRDataSeg
@@ -327,18 +325,22 @@ class FasterWhisperASR(BaseASR):
 
 
 def is_rtx_50_series() -> bool:
-    """检测是否为 RTX 50 系显卡"""
-    if GPUtil is None:
-        logger.debug("GPUtil 未安装，无法检测 GPU 型号")
-        return False
+    """检测是否为 RTX 50 系显卡（通过 nvidia-smi 查询 GPU 名称）"""
     try:
-        gpus = GPUtil.getGPUs()
-        for gpu in gpus:
-            gpu_name = gpu.name.lower()
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+        if result.returncode != 0:
+            return False
+        for gpu_name in result.stdout.splitlines():
             # 检测是否包含 50 系列标识，如 RTX 5090, RTX 5080 等
-            if re.search(r"rtx\s*50\d{2}", gpu_name):
-                logger.info(f"检测到 RTX 50 系显卡: {gpu.name}")
+            if re.search(r"rtx\s*50\d{2}", gpu_name.lower()):
+                logger.info(f"检测到 RTX 50 系显卡: {gpu_name.strip()}")
                 return True
-    except Exception as e:
+    except (FileNotFoundError, subprocess.SubprocessError) as e:
         logger.debug(f"无法检测 GPU 型号: {e}")
     return False

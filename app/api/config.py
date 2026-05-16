@@ -15,17 +15,12 @@ from typing import Any
 from app.config import SETTINGS_PATH, WORK_PATH
 from app.core.entities import (
     FasterWhisperModelEnum,
-    SubtitleLayoutEnum,
-    SubtitleRenderModeEnum,
     TranscribeLanguageEnum,
     TranscribeModelEnum,
     TranscribeOutputFormatEnum,
-    TranslatorServiceEnum,
     VadMethodEnum,
-    VideoQualityEnum,
     WhisperModelEnum,
 )
-from app.core.translate.types import TargetLanguage
 
 
 @dataclass
@@ -35,17 +30,6 @@ class LLMConfig:
     model: str = "gpt-4o-mini"
     api_key: str = ""
     base_url: str = "https://api.openai.com/v1"
-
-
-@dataclass
-class TranslateConfig:
-    """翻译配置"""
-
-    service: TranslatorServiceEnum = TranslatorServiceEnum.BING
-    need_reflect_translate: bool = False
-    deeplx_endpoint: str = ""
-    batch_size: int = 10
-    thread_num: int = 10
 
 
 @dataclass
@@ -103,51 +87,6 @@ class WhisperServiceConfig:
 
 
 @dataclass
-class SubtitleConfig:
-    """字幕配置"""
-
-    need_optimize: bool = False
-    need_translate: bool = False
-    need_split: bool = False
-    target_language: TargetLanguage = TargetLanguage.SIMPLIFIED_CHINESE
-    max_word_count_cjk: int = 28
-    max_word_count_english: int = 20
-    custom_prompt_text: str = ""
-
-
-@dataclass
-class VideoConfig:
-    """视频合成配置"""
-
-    soft_subtitle: bool = False
-    need_video: bool = True
-    quality: VideoQualityEnum = VideoQualityEnum.MEDIUM
-    use_subtitle_style: bool = False
-
-
-@dataclass
-class SubtitleStyleConfig:
-    """字幕样式配置"""
-
-    style_name: str = "default"
-    layout: SubtitleLayoutEnum = SubtitleLayoutEnum.TRANSLATE_ON_TOP
-    preview_image: str = ""
-    render_mode: SubtitleRenderModeEnum = SubtitleRenderModeEnum.ROUNDED_BG
-
-    # 圆角背景样式
-    rounded_bg_font_name: str = "LXGW WenKai"
-    rounded_bg_font_size: int = 52
-    rounded_bg_color: str = "#191919C8"
-    rounded_bg_text_color: str = "#FFFFFF"
-    rounded_bg_corner_radius: int = 12
-    rounded_bg_padding_h: int = 28
-    rounded_bg_padding_v: int = 14
-    rounded_bg_margin_bottom: int = 60
-    rounded_bg_line_spacing: int = 10
-    rounded_bg_letter_spacing: int = 0
-
-
-@dataclass
 class CacheConfig:
     """缓存配置"""
 
@@ -159,15 +98,11 @@ class BackendConfig:
     """后端总配置"""
 
     llm: LLMConfig = field(default_factory=LLMConfig)
-    translate: TranslateConfig = field(default_factory=TranslateConfig)
     transcribe: TranscribeConfig = field(default_factory=TranscribeConfig)
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
     faster_whisper: FasterWhisperConfig = field(default_factory=FasterWhisperConfig)
     whisper_api: WhisperAPIConfig = field(default_factory=WhisperAPIConfig)
     whisper_service: WhisperServiceConfig = field(default_factory=WhisperServiceConfig)
-    subtitle: SubtitleConfig = field(default_factory=SubtitleConfig)
-    video: VideoConfig = field(default_factory=VideoConfig)
-    subtitle_style: SubtitleStyleConfig = field(default_factory=SubtitleStyleConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     work_dir: Path = field(default_factory=lambda: WORK_PATH)
 

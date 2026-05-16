@@ -18,7 +18,6 @@ RUN pip install --no-cache-dir uv \
     && uv sync --frozen --no-dev
 
 COPY app ./app
-COPY resource ./resource
 
 EXPOSE 8765
 
