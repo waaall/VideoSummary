@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Dict, Optional, Set
 
 from app.api.persistence import SQLiteStore, get_store
-from app.config import WORK_PATH
+from app.config import UPLOAD_PATH
 
 # 文件类型白名单配置
 ALLOWED_VIDEO_EXTENSIONS: Set[str] = {".mp4", ".mkv", ".webm", ".mov", ".avi", ".flv", ".wmv"}
@@ -134,7 +134,7 @@ class FileStorage:
         if hasattr(self, "_initialized") and self._initialized:
             return
 
-        self.upload_dir = upload_dir or (WORK_PATH / "uploads")
+        self.upload_dir = upload_dir or UPLOAD_PATH
         self.max_file_size_bytes = max_file_size_mb * 1024 * 1024
         self.ttl_seconds = ttl_seconds
         self.store = store or get_store(db_path=db_path)

@@ -89,27 +89,30 @@ uvicorn app.api.main:app --reload --port 8765
 
 > 说明：Docker 部署仅包含后端服务。前端需单独构建并由 nginx 托管，详见「前端」章节。
 
-### 1. 准备环境变量
+### 1. 准备网络与配置
 
-`docker compose` 会读取项目根目录下的 `.env` 文件，也可以直接在当前 shell 中导出环境变量。至少建议配置以下变量：
-
-- `LLM_BASE_URL`
-- `LLM_API_KEY`
-- `LLM_MODEL`
-
-示例 `.env`：
+后端容器通过 Docker 网络 `llm-net` 按容器别名访问 Whisper / vLLM 服务（与二者同处一台宿主机时无需固定 IP）。该网络通常已由 Whisper / vLLM 的 compose 创建，若不存在则手动创建：
 
 ```bash
-LLM_BASE_URL=https://your-llm-endpoint/v1
-LLM_API_KEY=your_api_key
-LLM_MODEL=gpt-4o-mini
-JOB_WORKER_COUNT=1
-UPLOAD_CONCURRENCY=2
-UPLOAD_RATE_LIMIT_PER_MINUTE=30
-SUMMARY_RATE_LIMIT_PER_MINUTE=60
+docker network create llm-net
 ```
 
-说明：如果 `LLM_BASE_URL` 或 `LLM_API_KEY` 为空，容器仍然可以启动并通过 `/health` 检查，但实际发起摘要任务时会失败。
+LLM 与 Whisper 的连接地址在 `AppData/settings.json` 中配置（通过卷挂载持久化，修改后重启容器生效）：
+
+- `llm.base_url` / `llm.model` / `llm.api_key`：LLM 服务；本地 vLLM 无鉴权时 `api_key` 填任意非空值（如 `EMPTY`）
+- `whisper_service.base_url`：Whisper 服务地址
+- `transcribe.model` 设为 `Whisper Service` 以启用该转录后端
+
+与 Whisper / vLLM 同主机时，直接用容器别名即可：
+
+```json
+"llm":             { "base_url": "http://vllm:8000/v1", "model": "Qwen3.6-35B-A3B-FP8", "api_key": "EMPTY" },
+"whisper_service": { "base_url": "http://whisper-asr:9000" }
+```
+
+可选：`docker compose` 会读取根目录 `.env`，可设置 `JOB_WORKER_COUNT` / `UPLOAD_*` / `RATE_LIMIT_*` 等运行参数。`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` 若显式设置会覆盖 `settings.json` 中对应项（留空则以 JSON 为准）。
+
+说明：如果 LLM 或 Whisper 地址未配置，容器仍可启动并通过 `/health` 检查，但实际发起摘要任务时会失败。
 
 ### 2. 构建并后台启动
 
@@ -150,9 +153,13 @@ docker compose up --build -d
 
 ### 7. 数据目录说明
 
-- `./AppData`：持久化日志、缓存、模型和运行配置。
-- `./work-dir`：持久化任务处理过程中的工作目录。
+后端数据按读写特征分两类挂载，便于把大文件单独放到机械盘：
+
+- `./AppData` → `/app/AppData`：运行配置、日志、SQLite 数据库（`metadata.db`）。文件小、需快速随机读写，建议与代码同处固态盘。
+- 大块数据目录 → `/app/work-dir`：视频、上传文件、处理缓存、bundle 产物、本地 ASR 模型等。文件大，建议放机械盘——宿主机目录直接写在 `docker-compose.yml` 的卷映射里（默认 `/mnt/hdd/agent_resources/videosummary_cache`），换盘时改那一行即可。
 - `resource/`：已打包进镜像，不再通过 `docker-compose.yml` 挂载；修改后需要重新构建镜像。
+
+> 原生部署（非 Docker）：在 `AppData/settings.json` 的 `storage.data_root` 填大块数据目录的绝对路径，留空则用项目内 `work-dir`。
 
 ## API 端点
 

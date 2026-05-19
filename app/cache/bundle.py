@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.config import PROFILE_VERSION, WORK_PATH
+from app.config import BUNDLE_PATH, PROFILE_VERSION, TMP_PATH
 from app.core.utils.logger import setup_logger
 
 logger = setup_logger("bundle")
@@ -110,10 +110,10 @@ class BundleManager:
     def __init__(self, base_path: Optional[Path] = None):
         """
         Args:
-            base_path: 缓存基础目录，默认 WORK_PATH / "cache"
+            base_path: 缓存基础目录，默认 BUNDLE_PATH
         """
-        self.base_path = base_path or (WORK_PATH / "cache")
-        self.tmp_path = WORK_PATH / "tmp"
+        self.base_path = base_path or BUNDLE_PATH
+        self.tmp_path = TMP_PATH
 
         # 确保目录存在
         self.base_path.mkdir(parents=True, exist_ok=True)

@@ -9,14 +9,17 @@ services:
     ports:
       - "8765:8765"
     volumes:
+      # 固态盘：运行配置、日志、SQLite 数据库
       - ./AppData:/app/AppData
-      - ./work-dir:/app/work-dir
+      # 机械盘：视频、上传、缓存、模型等大块数据；换盘时改这一行宿主机路径即可
+      - /mnt/hdd/agent_resources/videosummary_cache:/app/work-dir
     environment:
       - TZ=Asia/Shanghai
       - PYTHONUNBUFFERED=1
+      # LLM 连接默认在 AppData/settings.json 配置；下列变量留空，仅在显式设置时覆盖 JSON
       - LLM_BASE_URL=${LLM_BASE_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_MODEL=${LLM_MODEL:-}
       - JOB_WORKER_COUNT=${JOB_WORKER_COUNT:-1}
       - UPLOAD_CONCURRENCY=${UPLOAD_CONCURRENCY:-2}
       - UPLOAD_RATE_LIMIT_PER_MINUTE=${UPLOAD_RATE_LIMIT_PER_MINUTE:-30}
@@ -29,3 +32,11 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+    networks:
+      - llm-net
+
+# 复用 Whisper / vLLM 的外部网络，按容器别名互访，无需固定 IP
+networks:
+  llm-net:
+    external: true
+    name: llm-net

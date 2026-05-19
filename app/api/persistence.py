@@ -16,10 +16,10 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.config import WORK_PATH
+from app.config import DB_PATH
 
 
-DEFAULT_DB_PATH = WORK_PATH / "metadata.db"
+DEFAULT_DB_PATH = DB_PATH
 
 
 class SQLiteStore:

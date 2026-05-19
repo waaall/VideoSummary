@@ -1,8 +1,8 @@
 {
   "llm": {
-    "model": "qwen3-next-80b-a3b-instruct",
-    "api_key": "",
-    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    "model": "Qwen3.6-35B-A3B-FP8",
+    "api_key": "EMPTY",
+    "base_url": "http://vllm:8000/v1"
   },
   "translate": {
     "service": "微软翻译",
@@ -38,7 +38,7 @@
     "prompt": ""
   },
   "whisper_service": {
-    "base_url": "http://192.168.50.50:9000",
+    "base_url": "http://whisper-asr:9000",
     "encode": true,
     "task": "transcribe",
     "vad_filter": true,
@@ -79,5 +79,7 @@
   "cache": {
     "enabled": true
   },
-  "work_dir": "work-dir"
+  "storage": {
+    "data_root": ""
+  }
 }

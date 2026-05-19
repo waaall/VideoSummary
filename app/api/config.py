@@ -12,7 +12,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from app.config import SETTINGS_PATH, WORK_PATH
+from app.config import SETTINGS_PATH
 from app.core.entities import (
     FasterWhisperModelEnum,
     TranscribeLanguageEnum,
@@ -104,7 +104,6 @@ class BackendConfig:
     whisper_api: WhisperAPIConfig = field(default_factory=WhisperAPIConfig)
     whisper_service: WhisperServiceConfig = field(default_factory=WhisperServiceConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
-    work_dir: Path = field(default_factory=lambda: WORK_PATH)
 
 
 def _enum_to_str(obj: Any) -> Any:

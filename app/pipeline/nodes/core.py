@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 import requests
 import yt_dlp
 
-from app.config import APPDATA_PATH, PROFILE_VERSION, WORK_PATH
+from app.config import APPDATA_PATH, PROFILE_VERSION, TMP_PATH
 from app.core.asr.asr_data import ASRData
 from app.core.utils.logger import setup_logger
 from app.core.utils.video_utils import get_video_info, video2audio
@@ -131,7 +131,7 @@ class DownloadSubtitleNode(PipelineNode):
 
         # 优先使用 bundle_dir，否则使用新 tmp 路径
         work_dir = self.params.get("work_dir") or ctx.bundle_dir or str(
-            WORK_PATH / "tmp" / ctx.run_id
+            TMP_PATH / ctx.run_id
         )
         subtitle_path = self._download_subtitle(url, work_dir)
 
@@ -278,7 +278,7 @@ class DownloadVideoNode(PipelineNode):
 
         # 优先使用 bundle_dir，否则使用新 tmp 路径
         work_dir = self.params.get("work_dir") or ctx.bundle_dir or str(
-            WORK_PATH / "tmp" / ctx.run_id
+            TMP_PATH / ctx.run_id
         )
         video_path = self._download_video(url, work_dir)
 
